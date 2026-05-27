@@ -8,13 +8,6 @@
   <img src="https://img.shields.io/badge/status-in--progress-orange.svg" />
 </p>
 
-> Course project — **Natural Language Processing**
-> Master of Computer Science, Vietnam Japan University (VJU-VNU)
-> Supervisor: PGS.TS. Trần Thị Oanh
-> Author: Bùi Đào Duy Anh — May 2026
-
----
-
 ## 📋 Mục lục
 
 - [Tổng quan](#-tổng-quan)

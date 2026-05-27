@@ -1,0 +1,44 @@
+# ============================================================
+# BERT Debug Configuration — Test pipeline nhanh
+# ============================================================
+
+experiment:
+  name: "bert_base_debug"
+  description: "Smoke test pipeline với 1000 samples"
+  tags: ["debug", "smoke-test"]
+
+model:
+  name: "bert-base-uncased"
+  num_labels: 28
+  dropout: 0.1
+
+data:
+  dataset_name: "google-research-datasets/go_emotions"
+  config: "simplified"
+  max_length: 128
+  num_workers: 2
+  debug: true             # Chỉ dùng 1000 train, 500 val
+  debug_train_size: 1000
+  debug_val_size: 500
+
+training:
+  epochs: 1
+  batch_size: 8
+  eval_batch_size: 16
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  seed: 42
+
+loss:
+  use_pos_weight: true
+  pos_weight_clip: [1.0, 50.0]
+
+logging:
+  use_wandb: false        # Tắt W&B khi debug
+  log_every_n_steps: 10
+
+paths:
+  output_dir: "results/models/debug"
+  results_dir: "results/metrics"

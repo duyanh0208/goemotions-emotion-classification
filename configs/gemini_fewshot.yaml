@@ -1,0 +1,36 @@
+# ============================================================
+# Gemini Few-shot Configuration
+# ============================================================
+
+experiment:
+  name: "gemini_fewshot_k5"
+  description: "Gemini 2.0 Flash with 5-shot prompting"
+  tags: ["llm", "gemini", "few-shot", "k=5"]
+
+model:
+  provider: "gemini"
+  name: "gemini-2.0-flash"
+  temperature: 0.0
+  max_output_tokens: 256
+  response_mime_type: "application/json"
+
+inference:
+  n_samples: 2000
+  split: "test"
+  seed: 42
+  batch_size: 1
+  retry_max_attempts: 3
+  retry_delay_seconds: 5
+  rate_limit_rpm: 15
+  save_every_n: 50
+
+prompt:
+  type: "few_shot"
+  template_path: "src/prompts/fewshot_template.txt"
+  n_examples: 5
+  example_selection: "diverse"  # diverse | random | similar
+  example_seed: 42
+
+paths:
+  output_dir: "results/llm/gemini_fewshot"
+  results_dir: "results/metrics"

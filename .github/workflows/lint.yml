@@ -1,0 +1,28 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install linters
+        run: |
+          pip install black flake8
+
+      - name: Black (code style)
+        run: black --check --diff src/ scripts/ || true
+
+      - name: Flake8 (linting)
+        run: flake8 src/ scripts/ --max-line-length=100 --extend-ignore=E203,W503 || true

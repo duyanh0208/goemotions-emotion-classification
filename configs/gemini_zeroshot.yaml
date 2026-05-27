@@ -1,0 +1,33 @@
+# ============================================================
+# Gemini Zero-shot Configuration
+# ============================================================
+
+experiment:
+  name: "gemini_zeroshot"
+  description: "Gemini 2.0 Flash zero-shot on GoEmotions test"
+  tags: ["llm", "gemini", "zero-shot"]
+
+model:
+  provider: "gemini"
+  name: "gemini-2.0-flash"
+  temperature: 0.0        # Deterministic
+  max_output_tokens: 256
+  response_mime_type: "application/json"
+
+inference:
+  n_samples: 2000         # Subset test (full = 5427)
+  split: "test"
+  seed: 42
+  batch_size: 1           # Gemini không hỗ trợ batching
+  retry_max_attempts: 3
+  retry_delay_seconds: 5
+  rate_limit_rpm: 15      # Free tier limit
+  save_every_n: 50        # Checkpoint mỗi 50 calls (tránh mất progress)
+
+prompt:
+  type: "zero_shot"
+  template_path: "src/prompts/zeroshot_template.txt"
+
+paths:
+  output_dir: "results/llm/gemini_zeroshot"
+  results_dir: "results/metrics"

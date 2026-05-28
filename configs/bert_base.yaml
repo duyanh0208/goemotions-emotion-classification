@@ -19,7 +19,7 @@ data:
   dataset_name: "google-research-datasets/go_emotions"
   config: "simplified"
   max_length: 128
-  num_workers: 0
+  num_workers: 2
 
 # Training
 training:

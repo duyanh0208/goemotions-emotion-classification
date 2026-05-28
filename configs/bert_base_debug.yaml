@@ -16,7 +16,7 @@ data:
   dataset_name: "google-research-datasets/go_emotions"
   config: "simplified"
   max_length: 128
-  num_workers: 0
+  num_workers: 2
   debug: true             # Chỉ dùng 1000 train, 500 val
   debug_train_size: 1000
   debug_val_size: 500

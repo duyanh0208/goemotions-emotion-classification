@@ -1,110 +1,226 @@
 # Contributing Guide
 
-Quy ước phát triển cho project này.
+Development conventions for this project.
 
 ---
 
-## Git Workflow
+## 1. Branch Naming
 
-### Branch naming
-- `main` — code stable, ready to ship
-- `develop` — development branch (default)
-- `feature/<name>` — tính năng mới (e.g., `feature/llm-fewshot`)
-- `experiment/<name>` — experiments (e.g., `experiment/roberta-large`)
-- `fix/<name>` — bug fixes
-- `docs/<name>` — chỉ update docs
+| Branch type | Pattern | Example |
+|-------------|---------|---------|
+| Stable production | `main` | — |
+| Active development | `develop` | — |
+| New feature / module | `feature/<name>` | `feature/lr-scheduler` |
+| New experiment run | `experiment/<name>` | `experiment/roberta-large` |
+| Bug fix | `fix/<name>` | `fix/tokenizer-overflow` |
+| Documentation only | `docs/<name>` | `docs/update-setup` |
 
-### Commit Messages
+**Rule:** Never commit directly to `main`. Branch from `develop`, work there, then open a PR back into `develop`. `develop` is merged into `main` only at milestone releases.
 
-Format: `<type>: <description>`
-
-Types:
-- `feat:` Tính năng mới
-- `fix:` Bug fix
-- `docs:` Cập nhật docs
-- `refactor:` Refactor code (không đổi behavior)
-- `test:` Thêm/sửa tests
-- `chore:` Build, deps, configs
-- `exp:` Experiment runs
-
-Examples:
 ```
-feat: add LoRA fine-tuning support
-fix: handle empty labels in dataset
-docs: update SETUP.md with Windows-specific notes
-exp: run BERT-base with lr=3e-5
-refactor: extract model class into separate file
+main
+ └── develop
+      ├── feature/add-deberta
+      ├── experiment/gemini-fewshot-k10
+      └── fix/nan-loss-on-empty-batch
 ```
-
-### Pull Request Process
-
-1. Tạo branch từ `develop`
-2. Make changes + commits
-3. Push branch
-4. Tạo PR vào `develop`
-5. Self-review trước khi merge
-6. Merge sau khi CI pass
 
 ---
 
-## Code Style
+## 2. Commit Message Format
 
-### Python
-- **PEP 8** + max line length 100
-- Use **type hints** cho function signatures
-- Use **docstrings** (Google style)
-- Use **`black`** formatter trước commit
+```
+<type>: <short description (≤72 chars)>
 
+[optional body — explain WHY, not WHAT]
+```
+
+| Type | When to use |
+|------|-------------|
+| `feat` | New feature or module |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `exp` | Experiment run or result update |
+| `refactor` | Code restructure (no behaviour change) |
+| `test` | Adding or updating tests |
+| `chore` | Config, CI, tooling, dependency updates |
+
+**Examples:**
+```
+feat: add per-class threshold optimisation in evaluate.py
+
+exp: run roberta_base full training — F1-macro 0.51
+
+fix: handle empty label list in _emotions_to_multihot
+
+docs: update EXPERIMENTS.md with bert_base results
+
+refactor: extract checkpoint logic into _save_checkpoint helper
+```
+
+---
+
+## 3. Pull Request Process
+
+1. **Branch** from `develop`:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/your-feature
+   ```
+
+2. **Develop & test** locally — run the suite before pushing:
+   ```bash
+   pytest tests/ -v
+   ```
+
+3. **Lint** (must pass CI):
+   ```bash
+   black src/ scripts/ tests/ --line-length 100
+   flake8 src/ scripts/ tests/ --max-line-length 100
+   ```
+
+4. **Push** and open a PR against `develop`:
+   ```bash
+   git push origin feature/your-feature
+   # then open PR on GitHub
+   ```
+
+5. **PR description** should include:
+   - What changed and why
+   - Test results or sample output
+   - Link to relevant config / EXPERIMENTS.md entry
+
+6. **Merge strategy**: squash-and-merge for feature branches; regular merge for experiment branches (to preserve run history).
+
+---
+
+## 4. Code Style
+
+| Rule | Value |
+|------|-------|
+| Formatter | `black` |
+| Linter | `flake8` |
+| Max line length | 100 |
+| Imports order | `isort` (stdlib → third-party → local) |
+| Docstrings | Google style |
+| Type hints | Required for all public functions |
+| Naming — files/vars | `snake_case` |
+| Naming — classes | `PascalCase` |
+| Naming — constants | `UPPER_SNAKE_CASE` |
+
+Install dev tools:
 ```bash
-black src/ scripts/
-flake8 src/ scripts/ --max-line-length=100
+pip install black flake8 isort pytest
 ```
 
-### Naming Conventions
-- Files/modules: `snake_case`
-- Classes: `PascalCase`
-- Functions/variables: `snake_case`
-- Constants: `UPPER_SNAKE_CASE`
+Run all checks at once:
+```bash
+black src/ scripts/ tests/ --line-length 100 --check
+flake8 src/ scripts/ tests/ --max-line-length 100
+isort src/ scripts/ tests/ --check-only
+```
 
 ---
 
-## Adding a New Experiment
+## 5. Adding a New Experiment
 
-1. Tạo config YAML mới trong `configs/`
-2. Add description vào `docs/EXPERIMENTS.md`
-3. Run experiment, log W&B
-4. Update results trong EXPERIMENTS.md
-5. Commit config + results JSON
+### Step 1 — Create a config file
+```bash
+cp configs/bert_base.yaml configs/my_experiment.yaml
+# Edit: experiment.name, model.name, hyperparameters, paths
+```
+
+### Step 2 — Run the experiment
+```bash
+# BERT / RoBERTa fine-tuning
+python -m src.train --config configs/my_experiment.yaml
+
+# LLM inference
+python -m src.llm_inference --config configs/my_experiment.yaml
+```
+
+Results are automatically saved to `results/metrics/<experiment_name>_metrics.json`.
+
+### Step 3 — Update EXPERIMENTS.md
+
+Open `docs/EXPERIMENTS.md` and fill in a new entry (copy an existing template block):
+
+```markdown
+## EXP-05: my_experiment
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-MM-DD |
+| Config | `configs/my_experiment.yaml` |
+| Hardware | ... |
+| Training time | ... |
+
+### Results
+| Metric | Value |
+|--------|-------|
+| F1-macro | 0.XXX |
+```
+
+### Step 4 — Regenerate comparison table
+```bash
+python scripts/compare_results.py
+```
+
+### Step 5 — Commit
+```bash
+git add configs/my_experiment.yaml docs/EXPERIMENTS.md results/metrics/
+git commit -m "exp: add my_experiment — F1-macro 0.XXX"
+```
 
 ---
 
-## Documentation
-
-- Cập nhật README.md khi có major changes
-- Cập nhật EXPERIMENTS.md sau mỗi run
-- Inline comments cho logic phức tạp
-- Tiếng Việt OK cho docs, tiếng Anh cho code
-
----
-
-## Testing
+## 6. Testing
 
 ```bash
 # Run all tests
-pytest tests/
+pytest tests/ -v
 
-# Run specific test
-pytest tests/test_data.py -v
+# Run a specific file
+pytest tests/test_metrics.py -v
+
+# Run with coverage
+pytest tests/ --cov=src --cov-report=term-missing
 ```
 
 ---
 
-## Code Review Checklist
+## 7. Environment & Secrets
 
-Trước khi merge:
-- [ ] Code chạy được (smoke test)
-- [ ] Tests pass
-- [ ] No hardcoded paths/keys
-- [ ] No commented-out code
-- [ ] Type hints + docstrings
-- [ ] EXPERIMENTS.md updated (nếu là exp)
+- **Never commit `.env`** — it is in `.gitignore`.
+- Use `.env.example` as the template; update it when you add new env vars.
+- Required keys: `GEMINI_API_KEY`, `WANDB_API_KEY` (optional).
+
+---
+
+## 8. Data & Models Policy
+
+- Raw data (`data/`) and model checkpoints (`results/models/`) are **gitignored** — do not force-add them.
+- Metrics JSONs and plots in `results/metrics/` and `results/plots/` **are** committed (small files, important for reproducibility).
+
+---
+
+## 9. Code Review Checklist
+
+Before merging:
+- [ ] Code runs (smoke test)
+- [ ] `pytest tests/` passes
+- [ ] No hardcoded paths or API keys
+- [ ] No commented-out dead code
+- [ ] Type hints + docstrings on all public functions
+- [ ] `EXPERIMENTS.md` updated (if this is an experiment branch)
+- [ ] `black` + `flake8` pass
+
+---
+
+## 10. Questions & Issues
+
+Open a GitHub Issue with label `question` or `bug`. Include:
+- Minimal reproducible example
+- Full error traceback
+- Python / CUDA version (`python --version`, `nvidia-smi`)

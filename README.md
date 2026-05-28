@@ -10,8 +10,7 @@
 
 > Course project — **Natural Language Processing**
 > Master of Computer Science, Vietnam Japan University (VJU-VNU)
-> Supervisor: PGS.TS. Trần Thị Oanh
-> Author: Bùi Đào Duy Anh — May 2026
+> May 2026
 
 ---
 
@@ -313,7 +312,6 @@ MIT License — xem [LICENSE](LICENSE) để biết chi tiết.
 
 ## 🙏 Acknowledgments
 
-- **PGS.TS. Trần Thị Oanh** — Giảng viên môn NLP, IS-VNU
 - **Google Research** — GoEmotions dataset
 - **HuggingFace** — Pre-trained models và libraries
 

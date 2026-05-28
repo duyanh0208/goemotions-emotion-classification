@@ -1,91 +1,184 @@
-# 🧪 Experiments Log
+# Experiment Log
 
-Log chi tiết các experiments đã chạy. Update sau mỗi run.
+Records every experiment run. Fill in each entry after a run completes.
 
 ---
 
-## Template entry
+## How to Fill This File
 
-```
-## Experiment: <name>
-**Date:** YYYY-MM-DD
-**Config:** configs/<name>.yaml
-**W&B Run:** <link>
+1. Copy the template block below into a new section.
+2. Replace `EXP-XX` with the next sequential number.
+3. Fill in Date, Config, Hardware, and Training time after the run.
+4. Paste metrics from `results/metrics/<experiment_name>_metrics.json`.
+5. Write a brief Observations paragraph.
+6. Commit this file together with the metrics JSON.
 
-### Setup
-- Hardware: <GPU>
-- Training time: <duration>
+**Template:**
+```markdown
+## EXP-XX: <experiment_name>
+
+| Field | Value |
+|-------|-------|
+| Date | TBD |
+| Config | `configs/<name>.yaml` |
+| Hardware | GPU model, VRAM |
+| Training time | TBD |
 
 ### Results
-| Metric | Val | Test |
-|--------|-----|------|
-| F1-macro | - | - |
-| F1-micro | - | - |
-| Hamming Loss | - | - |
+
+| Metric | Value |
+|--------|-------|
+| F1-macro | TBD |
+| F1-micro | TBD |
+| Hamming Loss | TBD |
+| Best val epoch | TBD |
 
 ### Observations
-- ...
 
-### Issues
-- ...
+> TBD
 ```
 
 ---
 
-## Experiment: bert_base_baseline
+## EXP-01: bert_base_baseline
 
-**Date:** TBD
-**Config:** `configs/bert_base.yaml`
-**W&B Run:** TBD
-
-### Setup
-- Hardware: RTX 2000 Ada (16GB)
-- Training time: TBD
+| Field | Value |
+|-------|-------|
+| Date | TBD |
+| Config | `configs/bert_base.yaml` |
+| Model | `bert-base-uncased` |
+| Hardware | TBD |
+| Training time | TBD |
+| Epochs | 3 |
+| Batch size | 16 |
+| Learning rate | 2e-5 |
+| Seed | 42 |
 
 ### Results
+
 | Metric | Val | Test |
 |--------|-----|------|
-| F1-macro | - | - |
-| F1-micro | - | - |
-| Hamming Loss | - | - |
+| F1-macro | TBD | TBD |
+| F1-micro | TBD | TBD |
+| F1-weighted | TBD | TBD |
+| Hamming Loss | TBD | TBD |
+| Best epoch | TBD | — |
 
 ### Observations
-- TBD
+
+> TBD — Fill after running `python -m src.train --config configs/bert_base.yaml`.
+> Expected baseline: F1-macro ≈ 0.46 (Demszky et al., 2020).
 
 ---
 
-## Experiment: roberta_base_baseline
+## EXP-02: roberta_base_baseline
 
-**Date:** TBD
-**Config:** `configs/roberta_base.yaml`
+| Field | Value |
+|-------|-------|
+| Date | TBD |
+| Config | `configs/roberta_base.yaml` |
+| Model | `roberta-base` |
+| Hardware | TBD |
+| Training time | TBD |
+| Epochs | 3 |
+| Batch size | 16 |
+| Learning rate | 2e-5 |
+| Seed | 42 |
 
-(Pending)
+### Results
+
+| Metric | Val | Test |
+|--------|-----|------|
+| F1-macro | TBD | TBD |
+| F1-micro | TBD | TBD |
+| F1-weighted | TBD | TBD |
+| Hamming Loss | TBD | TBD |
+| Best epoch | TBD | — |
+
+### Observations
+
+> TBD — Fill after running `python -m src.train --config configs/roberta_base.yaml`.
+> Hypothesis: RoBERTa should outperform BERT by ~2–4 F1-macro points (improved
+> pre-training: no NSP, more data, dynamic masking).
 
 ---
 
-## Experiment: gemini_zeroshot
+## EXP-03: gemini_zeroshot
 
-**Date:** TBD
-**Config:** `configs/gemini_zeroshot.yaml`
+| Field | Value |
+|-------|-------|
+| Date | TBD |
+| Config | `configs/gemini_zeroshot.yaml` |
+| Model | `gemini-2.0-flash` |
+| Hardware | API — no local GPU |
+| Inference time | TBD (~9 min for 2000 samples at 15 RPM) |
+| Temperature | 0.0 |
+| n_samples | 2000 (random subset, seed=42) |
 
-(Pending)
+### Results
+
+| Metric | Value |
+|--------|-------|
+| F1-macro | TBD |
+| F1-micro | TBD |
+| F1-weighted | TBD |
+| Hamming Loss | TBD |
+
+### Observations
+
+> TBD — Fill after running:
+> `python -m src.llm_inference --config configs/gemini_zeroshot.yaml --n_samples 2000`
+>
+> Note: Checkpoint resume is supported — if interrupted, re-run the same command.
+>
+> Hypothesis: Zero-shot LLM will underperform fine-tuned BERT on F1-macro overall,
+> but may show stronger recall on rare classes (grief, pride, relief) where the
+> fine-tuned model has few training examples.
 
 ---
 
-## Experiment: gemini_fewshot
+## EXP-04: gemini_fewshot_k5
 
-**Date:** TBD
-**Config:** `configs/gemini_fewshot.yaml`
+| Field | Value |
+|-------|-------|
+| Date | TBD |
+| Config | `configs/gemini_fewshot.yaml` |
+| Model | `gemini-2.0-flash` |
+| Hardware | API — no local GPU |
+| Inference time | TBD |
+| Temperature | 0.0 |
+| n_samples | 2000 (same random subset as EXP-03) |
+| k examples | 5 (fixed, curated) |
 
-(Pending)
+### Results
+
+| Metric | Value |
+|--------|-------|
+| F1-macro | TBD |
+| F1-micro | TBD |
+| F1-weighted | TBD |
+| Hamming Loss | TBD |
+
+### Observations
+
+> TBD — Fill after running:
+> `python -m src.llm_inference --config configs/gemini_fewshot.yaml --n_samples 2000`
+>
+> Hypothesis: Few-shot (k=5) will improve over zero-shot by anchoring the output
+> format and demonstrating multi-label behaviour; gains expected on rare classes
+> and neutral-vs-low-emotion edge cases.
 
 ---
 
 ## Summary Comparison
 
-| Experiment | F1-macro | F1-micro | Notes |
-|-----------|----------|----------|-------|
-| BERT-base | - | - | Baseline |
-| RoBERTa-base | - | - | Comparison |
-| Gemini zero-shot | - | - | No training |
-| Gemini few-shot (k=5) | - | - | In-context |
+> Run `python scripts/compare_results.py` to auto-generate this table and save to
+> `results/metrics/comparison_table.csv`.
+
+| Model | Method | F1-macro | F1-micro | Hamming Loss | Eval set |
+|-------|--------|----------|----------|--------------|----------|
+| BERT-base | Fine-tune | TBD | TBD | TBD | Full test (5427) |
+| RoBERTa-base | Fine-tune | TBD | TBD | TBD | Full test (5427) |
+| Gemini Flash | Zero-shot | TBD | TBD | TBD | 2K subset |
+| Gemini Flash | Few-shot (k=5) | TBD | TBD | TBD | 2K subset |
+| *Paper baseline* | *BERT Fine-tune* | *0.46* | *—* | *—* | *Demszky 2020* |

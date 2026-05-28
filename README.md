@@ -8,6 +8,12 @@
   <img src="https://img.shields.io/badge/status-in--progress-orange.svg" />
 </p>
 
+> Course project — **Natural Language Processing**
+> Master of Computer Science, Vietnam Japan University (VJU-VNU)
+> May 2026
+
+---
+
 ## 📋 Mục lục
 
 - [Tổng quan](#-tổng-quan)
@@ -306,7 +312,6 @@ MIT License — xem [LICENSE](LICENSE) để biết chi tiết.
 
 ## 🙏 Acknowledgments
 
-- **PGS.TS. Trần Thị Oanh** — Giảng viên môn NLP, IS-VNU
 - **Google Research** — GoEmotions dataset
 - **HuggingFace** — Pre-trained models và libraries
 

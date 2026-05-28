@@ -11,9 +11,10 @@ Provides:
 
 from typing import Dict, List, Tuple
 import numpy as np
+# datasets must be imported before torch to avoid CUDA multiprocessing conflict
+from datasets import load_dataset, DatasetDict
 import torch
 from torch.utils.data import Dataset, DataLoader
-from datasets import load_dataset, DatasetDict
 
 
 # ============================================================
@@ -115,7 +116,7 @@ def load_goemotions(
     ds = load_dataset(dataset_name, config)
 
     if debug:
-        print(f"⚠️  DEBUG MODE: subset train={debug_train_size}, val={debug_val_size}")
+        print(f"[DEBUG] subset train={debug_train_size}, val={debug_val_size}")
         ds["train"] = ds["train"].select(range(min(debug_train_size, len(ds["train"]))))
         ds["validation"] = ds["validation"].select(
             range(min(debug_val_size, len(ds["validation"])))

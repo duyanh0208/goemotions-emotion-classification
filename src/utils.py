@@ -59,11 +59,11 @@ def get_device() -> torch.device:
     """Detect available device và print info."""
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        print(f"✅ Using GPU: {torch.cuda.get_device_name(0)}")
-        print(f"   VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+        print(f"[GPU] {torch.cuda.get_device_name(0)}")
+        print(f"      VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
     else:
         device = torch.device("cpu")
-        print("⚠️  Using CPU (training sẽ rất chậm)")
+        print("[CPU] No CUDA GPU found — training will be slow")
     return device
 
 

@@ -38,7 +38,7 @@ from google.genai import types
 from datasets import load_dataset
 
 from .data import EMOTION_NAMES, NUM_LABELS, load_goemotions
-from .prompts import EMOTION_LIST, build_prompt
+from .prompts import build_prompt, parse_response
 from .utils import load_config, save_json
 
 logger = logging.getLogger(__name__)
@@ -52,24 +52,6 @@ logging.basicConfig(
 # ============================================================
 # Helpers
 # ============================================================
-def _parse_gemini_response(raw: str) -> List[str]:
-    """
-    Parse Gemini JSON response → list of emotion strings.
-
-    Expected format: {"emotions": ["joy", "excitement"]}
-    Falls back gracefully if parsing fails.
-    """
-    try:
-        data = json.loads(raw)
-        emotions = data.get("emotions", [])
-        # Validate: keep only known emotion labels
-        valid = [e for e in emotions if e in EMOTION_LIST]
-        return valid if valid else ["neutral"]
-    except (json.JSONDecodeError, AttributeError, TypeError):
-        logger.warning("Failed to parse Gemini response: %r", raw[:200])
-        return ["neutral"]
-
-
 def _emotions_to_multihot(emotions: List[str], emotion_names: List[str] = None) -> List[int]:
     """Convert list of emotion strings → multi-hot binary vector."""
     if emotion_names is None:
@@ -157,6 +139,8 @@ class GeminiInferenceClient:
             temperature=self.temperature,
             max_output_tokens=self.max_output_tokens,
             response_mime_type=self.response_mime_type,
+            # Disable thinking for gemini-2.5-flash so response.text is never None
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         )
         logger.info("Gemini model loaded: %s (mode=%s)", self.model_name, self.prompt_mode)
 
@@ -167,6 +151,17 @@ class GeminiInferenceClient:
         wait = self._min_interval - elapsed
         if wait > 0:
             time.sleep(wait)
+
+    # ----------------------------------------------------------
+    @staticmethod
+    def _parse_retry_delay(exc: Exception) -> float:
+        """Extract retryDelay seconds from a 429 error message, or return 0."""
+        import re
+        msg = str(exc)
+        m = re.search(r"retryDelay.*?(\d+)s", msg)
+        if m:
+            return float(m.group(1))
+        return 0.0
 
     # ----------------------------------------------------------
     def _call_gemini(self, prompt: str) -> str:
@@ -188,14 +183,16 @@ class GeminiInferenceClient:
                     contents=prompt,
                     config=self._gen_config,
                 )
-                return response.text
+                return response.text or ""
             except Exception as exc:
-                wait_time = self.retry_delay_seconds * (2 ** (attempt - 1))
+                # Try to extract retryDelay from the 429 response body
+                suggested = self._parse_retry_delay(exc)
+                wait_time = max(self.retry_delay_seconds * (2 ** (attempt - 1)), suggested)
                 logger.warning(
                     "Gemini API error (attempt %d/%d): %s — retrying in %.0fs",
                     attempt,
                     self.retry_max_attempts,
-                    str(exc),
+                    str(exc)[:120],
                     wait_time,
                 )
                 if attempt < self.retry_max_attempts:
@@ -253,7 +250,7 @@ class GeminiInferenceClient:
             predicted_labels: List[str] = ["neutral"]
             try:
                 raw_response = self._call_gemini(prompt)
-                predicted_labels = _parse_gemini_response(raw_response)
+                predicted_labels = parse_response(raw_response)
             except RuntimeError as exc:
                 logger.error("Skipping sample %s due to API error: %s", sample_id, exc)
 

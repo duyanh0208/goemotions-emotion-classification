@@ -44,11 +44,11 @@ Records every experiment run. Fill in each entry after a run completes.
 
 | Field | Value |
 |-------|-------|
-| Date | TBD |
+| Date | 2026-05-28 |
 | Config | `configs/bert_base.yaml` |
 | Model | `bert-base-uncased` |
-| Hardware | TBD |
-| Training time | TBD |
+| Hardware | NVIDIA RTX 2000 Ada Generation (17.2 GB VRAM) |
+| Training time | 37m 8s |
 | Epochs | 3 |
 | Batch size | 16 |
 | Learning rate | 2e-5 |
@@ -56,18 +56,42 @@ Records every experiment run. Fill in each entry after a run completes.
 
 ### Results
 
-| Metric | Val | Test |
-|--------|-----|------|
-| F1-macro | TBD | TBD |
-| F1-micro | TBD | TBD |
-| F1-weighted | TBD | TBD |
-| Hamming Loss | TBD | TBD |
-| Best epoch | TBD | — |
+| Metric | Epoch 1 Val | Epoch 2 Val | Epoch 3 Val | Test |
+|--------|------------|------------|------------|------|
+| F1-macro | 0.4012 | 0.4137 | **0.4305** | **0.4159** |
+| F1-micro | 0.4150 | 0.4459 | 0.4717 | 0.4650 |
+| F1-weighted | 0.5010 | 0.5276 | 0.5359 | 0.5329 |
+| Hamming Loss | 0.0992 | 0.0870 | 0.0766 | 0.0778 |
+| Train Loss | 0.7009 | 0.4419 | 0.3408 | — |
+
+Best epoch: **3** (Val F1-macro = 0.4305)
+
+### Per-class F1 (Test)
+
+**Top 5:**
+| Emotion | F1 |
+|---------|-----|
+| gratitude | 0.836 |
+| amusement | 0.803 |
+| love | 0.750 |
+| neutral | 0.682 |
+| admiration | 0.627 |
+
+**Bottom 5:**
+| Emotion | F1 |
+|---------|-----|
+| realization | 0.190 |
+| relief | 0.193 |
+| disappointment | 0.220 |
+| grief | 0.222 |
+| nervousness | 0.246 |
 
 ### Observations
 
-> TBD — Fill after running `python -m src.train --config configs/bert_base.yaml`.
-> Expected baseline: F1-macro ≈ 0.46 (Demszky et al., 2020).
+- Test F1-macro = **0.4159**, đạt ~90% paper baseline (0.46). Chênh lệch có thể do paper dùng thêm hyperparameter tuning và nhiều epochs hơn.
+- Loss vẫn đang giảm ở epoch 3 (0.341) trong khi val loss bắt đầu tăng nhẹ (0.510) — dấu hiệu slight overfitting. Có thể thử epoch 4-5 với early stopping.
+- Rare classes (relief, realization, grief) F1 thấp như dự đoán dù đã dùng pos_weight — đây là challenge cốt lõi của task.
+- Common emotions (gratitude, amusement, love) đạt F1 > 0.75 — model học tốt với data nhiều.
 
 ---
 
@@ -177,8 +201,8 @@ Records every experiment run. Fill in each entry after a run completes.
 
 | Model | Method | F1-macro | F1-micro | Hamming Loss | Eval set |
 |-------|--------|----------|----------|--------------|----------|
-| BERT-base | Fine-tune | TBD | TBD | TBD | Full test (5427) |
+| BERT-base | Fine-tune | **0.4159** | **0.4650** | **0.0778** | Full test (5427) |
 | RoBERTa-base | Fine-tune | TBD | TBD | TBD | Full test (5427) |
-| Gemini Flash | Zero-shot | TBD | TBD | TBD | 2K subset |
-| Gemini Flash | Few-shot (k=5) | TBD | TBD | TBD | 2K subset |
+| Gemini 2.5 Flash | Zero-shot | TBD | TBD | TBD | 2K subset |
+| Gemini 2.5 Flash | Few-shot (k=5) | TBD | TBD | TBD | 2K subset |
 | *Paper baseline* | *BERT Fine-tune* | *0.46* | *—* | *—* | *Demszky 2020* |

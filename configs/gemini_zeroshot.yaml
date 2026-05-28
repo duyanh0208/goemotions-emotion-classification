@@ -9,7 +9,7 @@ experiment:
 
 model:
   provider: "gemini"
-  name: "gemini-2.0-flash"
+  name: "gemini-2.5-flash"
   temperature: 0.0        # Deterministic
   max_output_tokens: 256
   response_mime_type: "application/json"

@@ -149,9 +149,9 @@ Output a JSON list of applicable emotion names.
 | Day | Task | Deliverable |
 |-----|------|-------------|
 | Mon | Setup Gemini API, `llm_inference.py` | Working LLM client |
-| Tue | Run zero-shot on 500 samples (smoke test) | Initial results |
-| Wed | Run zero-shot on 2000 test samples | Full zero-shot metrics |
-| Thu | Run few-shot on 2000 test samples | Few-shot metrics |
+| Tue | ✅ Fix bugs (Unicode, CUDA/datasets fork, Gemini quota), run smoke tests | Pipeline verified |
+| Wed | ✅ EXP-01 BERT-base full training (F1-macro=0.4159) | `results/metrics/bert_base_baseline.json` |
+| Thu | EXP-02 RoBERTa training + EXP-03/04 Gemini (cần billing) | — |
 | Fri | Error analysis notebook | 03_error_analysis.ipynb |
 | Sat | Disagreement analysis | Notebook + insights |
 | Sun | Buffer / start writeup | Report outline |

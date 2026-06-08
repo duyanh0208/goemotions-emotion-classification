@@ -1,0 +1,120 @@
+{
+  "experiment": "roberta_base_baseline",
+  "model_name": "roberta-base",
+  "config": {
+    "experiment": {
+      "name": "roberta_base_baseline",
+      "description": "RoBERTa-base fine-tuned on GoEmotions",
+      "tags": [
+        "roberta",
+        "comparison",
+        "fine-tune"
+      ]
+    },
+    "model": {
+      "name": "roberta-base",
+      "num_labels": 28,
+      "dropout": 0.1
+    },
+    "data": {
+      "dataset_name": "google-research-datasets/go_emotions",
+      "config": "simplified",
+      "max_length": 128,
+      "num_workers": 0
+    },
+    "training": {
+      "epochs": 3,
+      "batch_size": 16,
+      "eval_batch_size": 32,
+      "learning_rate": 2e-05,
+      "weight_decay": 0.01,
+      "warmup_ratio": 0.1,
+      "max_grad_norm": 1.0,
+      "seed": 42
+    },
+    "loss": {
+      "use_pos_weight": true,
+      "pos_weight_clip": [
+        1.0,
+        50.0
+      ]
+    },
+    "logging": {
+      "use_wandb": false,
+      "wandb_project": "goemotions-emotion-classification",
+      "log_every_n_steps": 50
+    },
+    "paths": {
+      "output_dir": "results/models/roberta_base",
+      "results_dir": "results/metrics"
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.7087865229874476,
+      "f1_macro": 0.4048662788646726,
+      "f1_micro": 0.43019580476991914,
+      "f1_weighted": 0.5049731520751116,
+      "hamming_loss": 0.09136564688536675,
+      "loss": 0.5070954364888808
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.4716321360717913,
+      "f1_macro": 0.3784981027144655,
+      "f1_micro": 0.4216246453829864,
+      "f1_weighted": 0.5114748010211003,
+      "hamming_loss": 0.09527539360749829,
+      "loss": 0.49047284126281737
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.3763677031295916,
+      "f1_macro": 0.41638593048792555,
+      "f1_micro": 0.4657803158740073,
+      "f1_weighted": 0.5302082426627654,
+      "hamming_loss": 0.07881364857037544,
+      "loss": 0.509051775143427
+    }
+  ],
+  "test_metrics": {
+    "f1_macro": 0.41114087859999376,
+    "f1_micro": 0.46177165529847086,
+    "f1_weighted": 0.5288519878229276,
+    "hamming_loss": 0.07945063044565533,
+    "loss": 0.5039263340480188
+  },
+  "test_per_class_f1": {
+    "admiration": 0.6300211416490487,
+    "amusement": 0.748159057437408,
+    "anger": 0.37104072398190047,
+    "annoyance": 0.3151969981238274,
+    "approval": 0.3395259449071108,
+    "caring": 0.31718061674008813,
+    "confusion": 0.3145809414466131,
+    "curiosity": 0.5278884462151394,
+    "desire": 0.40718562874251496,
+    "disappointment": 0.20973782771535582,
+    "disapproval": 0.3553382233088835,
+    "disgust": 0.3338632750397456,
+    "embarrassment": 0.24858757062146894,
+    "excitement": 0.2564885496183206,
+    "fear": 0.4863013698630137,
+    "gratitude": 0.8380716934487021,
+    "grief": 0.19607843137254902,
+    "joy": 0.3617021276595745,
+    "love": 0.7319422150882825,
+    "nervousness": 0.234375,
+    "optimism": 0.3591635916359164,
+    "pride": 0.4090909090909091,
+    "realization": 0.22023047375160051,
+    "relief": 0.1839080459770115,
+    "remorse": 0.572972972972973,
+    "sadness": 0.406480117820324,
+    "surprise": 0.45297504798464494,
+    "neutral": 0.6838576585869005
+  },
+  "best_val_f1_macro": 0.41638593048792555,
+  "total_training_time_seconds": 2277.8919084072113
+}

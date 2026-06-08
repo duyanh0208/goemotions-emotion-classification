@@ -1,0 +1,29 @@
+# ============================================================
+# Llama Zero-shot Configuration (Offline / Local)
+# ============================================================
+
+experiment:
+  name: "llama_zeroshot"
+  description: "Llama 3.2 3B Instruct zero-shot on GoEmotions test (offline)"
+  tags: ["llm", "llama", "zero-shot", "offline"]
+
+model:
+  name: "meta-llama/Llama-3.2-3B-Instruct"   # HuggingFace hub name (dùng khi online)
+  # local_path: "models/Llama-3.2-3B-Instruct" # Uncomment để dùng model đã tải về
+  local_files_only: false   # Đặt true sau khi đã tải model về để chạy offline
+  max_new_tokens: 128
+  device: "auto"            # "auto" | "cuda" | "cpu"
+  load_in_4bit: false       # Bật nếu VRAM < 8GB (cần bitsandbytes)
+
+inference:
+  n_samples: 2000           # Subset test (full = 5427)
+  split: "test"
+  seed: 42
+  save_every_n: 50
+
+prompt:
+  type: "zero_shot"
+
+paths:
+  output_dir: "results/llm/llama_zeroshot"
+  results_dir: "results/metrics"

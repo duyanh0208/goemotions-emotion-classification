@@ -32,9 +32,9 @@ plotly>=5.15.0
 wandb>=0.15.0
 
 # ============================================================
-# LLM API
+# LLM Local Inference
 # ============================================================
-google-genai>=1.0.0          # Replaces deprecated google-generativeai
+bitsandbytes>=0.41.0         # 4-bit quantization (optional, CUDA only)
 python-dotenv>=1.0.0
 
 # ============================================================

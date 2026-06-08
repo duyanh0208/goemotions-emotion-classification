@@ -1,0 +1,29 @@
+# ============================================================
+# Qwen 2.5 3B Zero-shot Configuration (Offline / Local)
+# ============================================================
+
+experiment:
+  name: "qwen_zeroshot"
+  description: "Qwen2.5 3B Instruct zero-shot on GoEmotions test (offline)"
+  tags: ["llm", "qwen", "zero-shot", "offline"]
+
+model:
+  name: "Qwen/Qwen2.5-3B-Instruct"
+  # local_path: "models/Qwen2.5-3B-Instruct"  # Uncomment sau khi tải về
+  local_files_only: false
+  max_new_tokens: 128
+  device: "auto"
+  load_in_4bit: false
+
+inference:
+  n_samples: 2000
+  split: "test"
+  seed: 42
+  save_every_n: 50
+
+prompt:
+  type: "zero_shot"
+
+paths:
+  output_dir: "results/llm/qwen_zeroshot"
+  results_dir: "results/metrics"

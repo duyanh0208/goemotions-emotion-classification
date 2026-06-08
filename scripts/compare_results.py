@@ -39,24 +39,47 @@ PLOT_OUT = PLOTS_DIR / "model_comparison.png"
 DISPLAY_MAP = {
     "bert_base_baseline": ("BERT-base", "Fine-tune"),
     "roberta_base_baseline": ("RoBERTa-base", "Fine-tune"),
-    "gemini_zeroshot": ("Gemini Flash", "Zero-shot"),
-    "gemini_fewshot_k5": ("Gemini Flash", "Few-shot (k=5)"),
+    "llama_zeroshot": ("Llama 3.2 3B", "Zero-shot"),
+    "qwen_zeroshot": ("Qwen2.5 3B", "Zero-shot"),
+    "llama_fewshot": ("Llama 3.2 3B", "Few-shot (k=5)"),
+    "qwen_fewshot": ("Qwen2.5 3B", "Few-shot (k=5)"),
 }
 
 
 # ============================================================
 # Helpers
 # ============================================================
-def load_all_metrics(metrics_dir: Path) -> list[dict]:
-    """Load all *_metrics.json files from metrics_dir."""
-    rows = []
-    pattern = "*_metrics.json"
-    files = sorted(metrics_dir.glob(pattern))
+def _extract_metrics(data: dict) -> dict:
+    """
+    Extract flat metrics dict from either format:
+    - LLM format: {"f1_macro": ..., "f1_micro": ..., "n_samples": ...}
+    - Train format: {"test_metrics": {"f1_macro": ..., ...}, "test_per_class_f1": {...}}
+    """
+    if "f1_macro" in data:
+        return data
+    if "test_metrics" in data:
+        m = data["test_metrics"]
+        n = data.get("config", {}).get("data", {})
+        return {
+            "f1_macro": m.get("f1_macro", float("nan")),
+            "f1_micro": m.get("f1_micro", float("nan")),
+            "f1_weighted": m.get("f1_weighted", float("nan")),
+            "hamming_loss": m.get("hamming_loss", float("nan")),
+            "n_samples": "full test",
+            "per_class_f1": data.get("test_per_class_f1", {}),
+        }
+    return {}
 
+
+def load_all_metrics(metrics_dir: Path) -> list[dict]:
+    """Load both *_metrics.json (LLM) and *.json (train) files."""
+    rows = []
+    seen: set[str] = set()
+
+    # Scan all JSON files; skip debug runs (n_samples < 100)
+    files = sorted(metrics_dir.glob("*.json"))
     if not files:
         print(f"⚠️  No metrics files found in {metrics_dir}")
-        print("   Run at least one experiment first:")
-        print("   python -m src.train --config configs/bert_base.yaml")
         return rows
 
     for fpath in files:
@@ -68,16 +91,31 @@ def load_all_metrics(metrics_dir: Path) -> list[dict]:
             continue
 
         experiment = data.get("experiment", fpath.stem.replace("_metrics", ""))
-        model_name, method = DISPLAY_MAP.get(experiment, (experiment, "—"))
+        if experiment not in DISPLAY_MAP:
+            continue
+        if experiment in seen:
+            continue
 
+        m = _extract_metrics(data)
+        if not m:
+            continue
+
+        n_samples = m.get("n_samples", "—")
+        # Skip tiny debug runs
+        if isinstance(n_samples, int) and n_samples < 100:
+            print(f"  Skipping {fpath.name} (n_samples={n_samples}, likely debug run)")
+            continue
+
+        seen.add(experiment)
+        model_name, method = DISPLAY_MAP[experiment]
         rows.append({
             "Experiment": experiment,
             "Model": model_name,
             "Method": method,
-            "F1-macro": data.get("f1_macro", float("nan")),
-            "F1-micro": data.get("f1_micro", float("nan")),
-            "Hamming Loss": data.get("hamming_loss", float("nan")),
-            "N Samples": data.get("n_samples", "—"),
+            "F1-macro": m.get("f1_macro", float("nan")),
+            "F1-micro": m.get("f1_micro", float("nan")),
+            "Hamming Loss": m.get("hamming_loss", float("nan")),
+            "N Samples": n_samples,
         })
 
     return rows

@@ -1,44 +1,35 @@
 """
 ============================================================
-LLM Inference module — Gemini 2.0 Flash on GoEmotions
+LLM Inference module — Llama 3.1 8B Instruct on GoEmotions
 ============================================================
 
 Provides:
-    - GeminiInferenceClient: Load config, call Gemini API with
-      rate-limiting, retry logic, and checkpoint resume.
+    - LlamaInferenceClient: Load model locally, run inference with
+      checkpoint resume and configurable batch size.
     - run_inference(): Main entry-point
 
 Usage (module):
-    python -m src.llm_inference --config configs/gemini_zeroshot.yaml --n_samples 2000
+    python -m src.llm_inference --config configs/llama_zeroshot.yaml --n_samples 2000
 
 Features:
-    - Rate limiting  : 15 RPM (free-tier) via time.sleep()
-    - Retry logic    : 3 attempts with exponential backoff
-    - Checkpointing  : saves progress every N samples to JSON
-    - Resume support : skips samples already in checkpoint
-    - Output         : predictions.json + metrics.json
+    - Local inference  : no API key, no rate limits
+    - Checkpointing    : saves progress every N samples to JSON
+    - Resume support   : skips samples already in checkpoint
+    - Output           : predictions.json + metrics.json
 """
 
 import argparse
 import json
 import logging
-import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from datasets import load_dataset  # must import before torch to avoid segfault
+import torch
 
-# Load .env before any google-generativeai import
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from google import genai
-from google.genai import types
-from datasets import load_dataset
-
-from .data import EMOTION_NAMES, NUM_LABELS, load_goemotions
-from .prompts import EMOTION_LIST, build_prompt
+from .data import EMOTION_NAMES, load_goemotions
+from .prompts import build_prompt, parse_response
 from .utils import load_config, save_json
 
 logger = logging.getLogger(__name__)
@@ -52,24 +43,6 @@ logging.basicConfig(
 # ============================================================
 # Helpers
 # ============================================================
-def _parse_gemini_response(raw: str) -> List[str]:
-    """
-    Parse Gemini JSON response → list of emotion strings.
-
-    Expected format: {"emotions": ["joy", "excitement"]}
-    Falls back gracefully if parsing fails.
-    """
-    try:
-        data = json.loads(raw)
-        emotions = data.get("emotions", [])
-        # Validate: keep only known emotion labels
-        valid = [e for e in emotions if e in EMOTION_LIST]
-        return valid if valid else ["neutral"]
-    except (json.JSONDecodeError, AttributeError, TypeError):
-        logger.warning("Failed to parse Gemini response: %r", raw[:200])
-        return ["neutral"]
-
-
 def _emotions_to_multihot(emotions: List[str], emotion_names: List[str] = None) -> List[int]:
     """Convert list of emotion strings → multi-hot binary vector."""
     if emotion_names is None:
@@ -99,11 +72,14 @@ def _save_checkpoint(checkpoint: Dict[str, Any], checkpoint_path: Path) -> None:
 
 
 # ============================================================
-# Gemini Client
+# Llama Client
 # ============================================================
-class GeminiInferenceClient:
+class LlamaInferenceClient:
     """
-    Gemini API client for GoEmotions multi-label classification.
+    Local Llama inference client for GoEmotions multi-label classification.
+
+    Loads the model once at init, then runs sample-by-sample inference
+    with checkpoint/resume support. No API key or rate limits required.
 
     Args:
         config: Parsed YAML config dict (from load_config())
@@ -112,20 +88,18 @@ class GeminiInferenceClient:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.experiment_name: str = config["experiment"]["name"]
-        self.model_name: str = config["model"]["name"]
-        self.temperature: float = config["model"].get("temperature", 0.0)
-        self.max_output_tokens: int = config["model"].get("max_output_tokens", 256)
-        self.response_mime_type: str = config["model"].get(
-            "response_mime_type", "application/json"
-        )
+        model_cfg = config["model"]
+        # local_path takes priority over hub name for offline use
+        self.model_name: str = model_cfg.get("local_path") or model_cfg["name"]
+        self.max_new_tokens: int = model_cfg.get("max_new_tokens", 128)
+        self.local_files_only: bool = model_cfg.get("local_files_only", False)
+        self.load_in_4bit: bool = model_cfg.get("load_in_4bit", False)
+        self.device: str = model_cfg.get("device", "auto")
 
         inf = config["inference"]
         self.n_samples: int = inf.get("n_samples", 2000)
         self.split: str = inf.get("split", "test")
         self.seed: int = inf.get("seed", 42)
-        self.retry_max_attempts: int = inf.get("retry_max_attempts", 3)
-        self.retry_delay_seconds: float = inf.get("retry_delay_seconds", 5.0)
-        self.rate_limit_rpm: int = inf.get("rate_limit_rpm", 15)
         self.save_every_n: int = inf.get("save_every_n", 50)
 
         self.prompt_mode: str = config["prompt"]["type"]  # "zero_shot" or "few_shot"
@@ -136,75 +110,75 @@ class GeminiInferenceClient:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.results_dir.mkdir(parents=True, exist_ok=True)
 
-        # Seconds between calls to respect rate limit
-        self._min_interval: float = 60.0 / self.rate_limit_rpm  # e.g. 4.0 s for 15 RPM
-        self._last_call_time: float = 0.0
-
-        self._init_gemini()
+        self._init_model()
 
     # ----------------------------------------------------------
-    def _init_gemini(self) -> None:
-        """Configure the Gemini SDK (google-genai). Reads GEMINI_API_KEY from env."""
-        import os
+    def _init_model(self) -> None:
+        """Load model via HuggingFace transformers pipeline."""
+        from transformers import pipeline as hf_pipeline, BitsAndBytesConfig
 
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            raise EnvironmentError(
-                "GEMINI_API_KEY not found. Set it in your .env file or environment."
-            )
-        self._client = genai.Client(api_key=api_key)
-        self._gen_config = types.GenerateContentConfig(
-            temperature=self.temperature,
-            max_output_tokens=self.max_output_tokens,
-            response_mime_type=self.response_mime_type,
+        # Choose dtype: float16 on CUDA, float32 on CPU
+        use_cuda = torch.cuda.is_available() and self.device != "cpu"
+        dtype = torch.float16 if use_cuda else torch.float32
+
+        # In transformers 5.x, any unrecognised pipeline kwarg is stored in model_kwargs
+        # and later forwarded to model.generate(), causing errors.  Never pass
+        # local_files_only to pipeline(); set HF_HUB_OFFLINE=1 env var for offline mode.
+        import os as _os
+        if self.local_files_only:
+            _os.environ["HF_HUB_OFFLINE"] = "1"
+
+        pipeline_kwargs: Dict[str, Any] = {
+            "task": "text-generation",
+            "model": self.model_name,
+            "dtype": dtype,
+            "device_map": self.device,
+        }
+
+        if self.load_in_4bit:
+            if not use_cuda:
+                logger.warning("load_in_4bit=True requires CUDA; ignoring on CPU.")
+            else:
+                pipeline_kwargs["model_kwargs"] = {
+                    "quantization_config": BitsAndBytesConfig(load_in_4bit=True)
+                }
+
+        logger.info(
+            "Loading model: %s  device=%s  dtype=%s  4bit=%s  offline=%s",
+            self.model_name, self.device, dtype, self.load_in_4bit, self.local_files_only,
         )
-        logger.info("Gemini model loaded: %s (mode=%s)", self.model_name, self.prompt_mode)
+        self._pipe = hf_pipeline(**pipeline_kwargs)
+        self._pipe.tokenizer.pad_token_id = self._pipe.tokenizer.eos_token_id
+        logger.info("Model loaded: %s (mode=%s)", self.model_name, self.prompt_mode)
 
     # ----------------------------------------------------------
-    def _rate_limit_sleep(self) -> None:
-        """Sleep to enforce the per-minute rate limit."""
-        elapsed = time.time() - self._last_call_time
-        wait = self._min_interval - elapsed
-        if wait > 0:
-            time.sleep(wait)
-
-    # ----------------------------------------------------------
-    def _call_gemini(self, prompt: str) -> str:
+    def _call_llama(self, text: str) -> str:
         """
-        Call Gemini API with exponential-backoff retry logic.
+        Run a single inference call.
 
-        Returns:
-            Raw response text string.
-
-        Raises:
-            RuntimeError if all retries are exhausted.
+        Applies the chat template, generates, and returns only the
+        newly generated tokens (not the prompt).
         """
-        for attempt in range(1, self.retry_max_attempts + 1):
-            try:
-                self._rate_limit_sleep()
-                self._last_call_time = time.time()
-                response = self._client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config=self._gen_config,
-                )
-                return response.text
-            except Exception as exc:
-                wait_time = self.retry_delay_seconds * (2 ** (attempt - 1))
-                logger.warning(
-                    "Gemini API error (attempt %d/%d): %s — retrying in %.0fs",
-                    attempt,
-                    self.retry_max_attempts,
-                    str(exc),
-                    wait_time,
-                )
-                if attempt < self.retry_max_attempts:
-                    time.sleep(wait_time)
-                else:
-                    raise RuntimeError(
-                        f"Gemini API failed after {self.retry_max_attempts} attempts: {exc}"
-                    ) from exc
-        return ""  # unreachable
+        from transformers import GenerationConfig
+
+        prompt_text = build_prompt(text, mode=self.prompt_mode)
+        messages = [{"role": "user", "content": prompt_text}]
+        formatted_prompt = self._pipe.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        gen_config = GenerationConfig(
+            max_new_tokens=self.max_new_tokens,
+            do_sample=False,
+            pad_token_id=self._pipe.tokenizer.eos_token_id,
+        )
+        outputs = self._pipe(
+            formatted_prompt,
+            generation_config=gen_config,
+            return_full_text=False,
+        )
+        return outputs[0]["generated_text"].strip()
 
     # ----------------------------------------------------------
     def run(self) -> Dict[str, Any]:
@@ -218,14 +192,12 @@ class GeminiInferenceClient:
         ds_full = load_goemotions()
         split_ds = ds_full[self.split]
 
-        # Subsample reproducibly
         np.random.seed(self.seed)
         total = len(split_ds)
         n = min(self.n_samples, total)
         indices = np.random.choice(total, size=n, replace=False).tolist()
         logger.info("Sampling %d / %d examples (seed=%d)", n, total, self.seed)
 
-        # Resume from checkpoint
         checkpoint_path = self.output_dir / "checkpoint.json"
         checkpoint = _load_checkpoint(checkpoint_path)
         completed_ids = set(checkpoint["completed_ids"])
@@ -235,8 +207,7 @@ class GeminiInferenceClient:
         if skipped:
             logger.info("Resuming — %d samples already done, skipping.", skipped)
 
-        # Inference loop
-        for i, idx in enumerate(indices):
+        for idx in indices:
             sample = split_ds[idx]
             sample_id = sample.get("id", str(idx))
 
@@ -244,30 +215,25 @@ class GeminiInferenceClient:
                 continue
 
             text = sample["text"]
-            true_label_indices = sample["labels"]
-            true_labels = [EMOTION_NAMES[j] for j in true_label_indices]
-
-            prompt = build_prompt(text, mode=self.prompt_mode)
+            true_labels = [EMOTION_NAMES[j] for j in sample["labels"]]
 
             raw_response = ""
             predicted_labels: List[str] = ["neutral"]
             try:
-                raw_response = self._call_gemini(prompt)
-                predicted_labels = _parse_gemini_response(raw_response)
-            except RuntimeError as exc:
-                logger.error("Skipping sample %s due to API error: %s", sample_id, exc)
+                raw_response = self._call_llama(text)
+                predicted_labels = parse_response(raw_response)
+            except Exception as exc:
+                logger.error("Skipping sample %s: %s", sample_id, exc)
 
-            record: Dict[str, Any] = {
+            results.append({
                 "id": sample_id,
                 "text": text,
                 "true_labels": true_labels,
                 "predicted_labels": predicted_labels,
                 "raw_response": raw_response,
-            }
-            results.append(record)
+            })
             completed_ids.add(sample_id)
 
-            # Checkpoint
             processed = len(results)
             if processed % self.save_every_n == 0:
                 checkpoint["results"] = results
@@ -275,9 +241,7 @@ class GeminiInferenceClient:
                 _save_checkpoint(checkpoint, checkpoint_path)
                 logger.info(
                     "Checkpoint saved — %d / %d done (%.1f%%)",
-                    processed,
-                    n,
-                    100.0 * processed / n,
+                    processed, n, 100.0 * processed / n,
                 )
 
         # Final checkpoint
@@ -285,10 +249,8 @@ class GeminiInferenceClient:
         checkpoint["completed_ids"] = list(completed_ids)
         _save_checkpoint(checkpoint, checkpoint_path)
 
-        # Compute metrics
         metrics = self._compute_metrics(results)
 
-        # Save outputs
         pred_path = self.output_dir / "predictions.json"
         metrics_path = self.output_dir / "metrics.json"
         combined_metrics_path = self.results_dir / f"{self.experiment_name}_metrics.json"
@@ -299,9 +261,7 @@ class GeminiInferenceClient:
 
         logger.info(
             "Done! F1-macro=%.4f  F1-micro=%.4f  Hamming=%.4f",
-            metrics["f1_macro"],
-            metrics["f1_micro"],
-            metrics["hamming_loss"],
+            metrics["f1_macro"], metrics["f1_micro"], metrics["hamming_loss"],
         )
         logger.info("Predictions → %s", pred_path)
         logger.info("Metrics     → %s", metrics_path)
@@ -309,7 +269,7 @@ class GeminiInferenceClient:
         return {"results": results, "metrics": metrics}
 
     # ----------------------------------------------------------
-    def _compute_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, float]:
+    def _compute_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Compute F1-macro, F1-micro, Hamming Loss from prediction records."""
         from sklearn.metrics import f1_score, hamming_loss
 
@@ -321,22 +281,15 @@ class GeminiInferenceClient:
         y_true_np = np.array(y_true)
         y_pred_np = np.array(y_pred)
 
-        # Per-class F1 (for detailed breakdown)
         per_class = f1_score(y_true_np, y_pred_np, average=None, zero_division=0).tolist()
         per_class_dict = {
             name: round(float(f), 4) for name, f in zip(EMOTION_NAMES, per_class)
         }
 
         return {
-            "f1_macro": round(
-                float(f1_score(y_true_np, y_pred_np, average="macro", zero_division=0)), 4
-            ),
-            "f1_micro": round(
-                float(f1_score(y_true_np, y_pred_np, average="micro", zero_division=0)), 4
-            ),
-            "f1_weighted": round(
-                float(f1_score(y_true_np, y_pred_np, average="weighted", zero_division=0)), 4
-            ),
+            "f1_macro": round(float(f1_score(y_true_np, y_pred_np, average="macro", zero_division=0)), 4),
+            "f1_micro": round(float(f1_score(y_true_np, y_pred_np, average="micro", zero_division=0)), 4),
+            "f1_weighted": round(float(f1_score(y_true_np, y_pred_np, average="weighted", zero_division=0)), 4),
             "hamming_loss": round(float(hamming_loss(y_true_np, y_pred_np)), 4),
             "n_samples": len(results),
             "per_class_f1": per_class_dict,
@@ -363,16 +316,16 @@ def run_inference(
     config = load_config(config_path)
     if n_samples is not None:
         config["inference"]["n_samples"] = n_samples
-    client = GeminiInferenceClient(config)
+    client = LlamaInferenceClient(config)
     return client.run()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Gemini LLM inference on GoEmotions")
+    parser = argparse.ArgumentParser(description="Llama LLM inference on GoEmotions")
     parser.add_argument(
         "--config",
         required=True,
-        help="Path to YAML config file (e.g. configs/gemini_zeroshot.yaml)",
+        help="Path to YAML config file (e.g. configs/llama_zeroshot.yaml)",
     )
     parser.add_argument(
         "--n_samples",

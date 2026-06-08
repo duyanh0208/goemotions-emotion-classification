@@ -16,6 +16,9 @@ import argparse
 import time
 from pathlib import Path
 
+# datasets must be imported before torch to avoid CUDA multiprocessing segfault on Windows
+import datasets as _ds_init  # noqa: F401
+
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
@@ -125,16 +128,31 @@ def main():
     if args.no_wandb:
         config["logging"]["use_wandb"] = False
 
-    # Setup
-    set_seed(config["training"]["seed"])
-    device = get_device()
-
     # Print config
     print("\n" + "=" * 60)
     print("CONFIGURATION")
     print("=" * 60)
     import yaml
     print(yaml.dump(config, indent=2, default_flow_style=False, sort_keys=False))
+
+    # ============================================================
+    # Data — load BEFORE set_seed/get_device() to avoid CUDA/datasets fork conflict
+    # ============================================================
+    print("\n" + "=" * 60)
+    print("LOADING DATA")
+    print("=" * 60)
+
+    ds = load_goemotions(
+        dataset_name=config["data"]["dataset_name"],
+        config=config["data"]["config"],
+        debug=config["data"].get("debug", False),
+        debug_train_size=config["data"].get("debug_train_size", 1000),
+        debug_val_size=config["data"].get("debug_val_size", 500),
+    )
+
+    # Init CUDA and seed after dataset is loaded (avoids datasets/CUDA fork conflict)
+    device = get_device()
+    set_seed(config["training"]["seed"])
 
     # ============================================================
     # W&B Init
@@ -148,21 +166,6 @@ def main():
             tags=config["experiment"].get("tags", []),
             config=config,
         )
-
-    # ============================================================
-    # Data
-    # ============================================================
-    print("\n" + "=" * 60)
-    print("LOADING DATA")
-    print("=" * 60)
-
-    ds = load_goemotions(
-        dataset_name=config["data"]["dataset_name"],
-        config=config["data"]["config"],
-        debug=config["data"].get("debug", False),
-        debug_train_size=config["data"].get("debug_train_size", 1000),
-        debug_val_size=config["data"].get("debug_val_size", 500),
-    )
     print(f"Train: {len(ds['train']):,} | Val: {len(ds['validation']):,} | Test: {len(ds['test']):,}")
 
     print(f"\nLoading tokenizer: {config['model']['name']}")
@@ -234,7 +237,7 @@ def main():
     # Training Loop
     # ============================================================
     print("\n" + "=" * 60)
-    print(f"BẮT ĐẦU TRAINING — {config['training']['epochs']} epochs")
+    print(f"TRAINING START — {config['training']['epochs']} epochs")
     print("=" * 60)
 
     output_dir = Path(config["paths"]["output_dir"])
@@ -291,10 +294,10 @@ def main():
                 "val_metrics": val_metrics,
                 "config": config,
             }, best_path)
-            print(f"  ✅ Saved best model (F1-macro: {best_f1_macro:.4f})")
+            print(f"  [BEST] Saved model (F1-macro: {best_f1_macro:.4f})")
 
     total_time = time.time() - start_time
-    print(f"\n⏱️  Total training time: {format_time(total_time)}")
+    print(f"\nTotal training time: {format_time(total_time)}")
 
     # ============================================================
     # Final Test Evaluation
@@ -315,7 +318,7 @@ def main():
 
     # Per-class F1
     class_f1 = per_class_f1(test_logits, test_labels)
-    print("\n🔍 Per-class F1 (top 5 best / bottom 5):")
+    print("\nPer-class F1 (top 5 best / bottom 5 worst):")
     sorted_classes = sorted(class_f1.items(), key=lambda x: x[1], reverse=True)
     print("  Best:")
     for name, f1 in sorted_classes[:5]:
@@ -338,7 +341,7 @@ def main():
 
     results_path = Path(config["paths"]["results_dir"]) / f"{config['experiment']['name']}.json"
     save_json(results, results_path)
-    print(f"\n✅ Saved results: {results_path}")
+    print(f"\nSaved results: {results_path}")
 
     # Save predictions
     import numpy as np
@@ -354,7 +357,7 @@ def main():
         })
         wandb.finish()
 
-    print(f"\n🎉 Done! Best Val F1-macro: {best_f1_macro:.4f}")
+    print(f"\nDone! Best Val F1-macro: {best_f1_macro:.4f}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,887 @@
+[
+  {
+    "id": "edlq3g5",
+    "text": "He looks like he's 10 years old...",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edcxtrt",
+    "text": "From an Instagram post about the judge critiquing [NAME] look",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eemefit",
+    "text": "Don't worry, no one ever will ",
+    "true_labels": [
+      "caring"
+    ],
+    "bert_predicted": [
+      "caring"
+    ],
+    "llm_predicted": [
+      "relief"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eebm9s8",
+    "text": "There is a guy that looks like [NAME] in my local Walmart",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "surprise"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eevt039",
+    "text": "making photos look pretty",
+    "true_labels": [
+      "admiration"
+    ],
+    "bert_predicted": [
+      "admiration"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edf9nth",
+    "text": "How tf do you not expect people to find them they're the first things that show up when you search joji",
+    "true_labels": [
+      "anger"
+    ],
+    "bert_predicted": [
+      "confusion",
+      "curiosity",
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "edp9uoq",
+    "text": "Lindt is premium brand, im not surprised by this.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "admiration",
+      "approval",
+      "realization",
+      "surprise"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "eepfus6",
+    "text": "KAMALA 2020!!!!!!",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "excitement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ed61lxp",
+    "text": "Same reaction I had last week when I learned that [NAME] was once engaged to [NAME].",
+    "true_labels": [
+      "surprise"
+    ],
+    "bert_predicted": [
+      "neutral",
+      "realization"
+    ],
+    "llm_predicted": [
+      "surprise"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "ee3rlc5",
+    "text": "Your TLDR sucks",
+    "true_labels": [
+      "disappointment"
+    ],
+    "bert_predicted": [
+      "anger",
+      "annoyance",
+      "disapproval",
+      "disgust"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "eepmgiy",
+    "text": "It's pretty warm in Australia during this time of year.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "admiration",
+      "approval",
+      "joy"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "ef52l3i",
+    "text": "Wiggins midrange magic!",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edw5zjt",
+    "text": "If you look at her from a distance, she's super cute. Then you get close and it's a [NAME] painting of tweaky, delusion.",
+    "true_labels": [
+      "admiration"
+    ],
+    "bert_predicted": [
+      "admiration"
+    ],
+    "llm_predicted": [
+      "amusement",
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eevwe7c",
+    "text": "Sounds weird but dont swallow",
+    "true_labels": [
+      "surprise"
+    ],
+    "bert_predicted": [
+      "annoyance",
+      "disapproval",
+      "disgust",
+      "embarrassment",
+      "neutral"
+    ],
+    "llm_predicted": [
+      "surprise"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "ee1gbnt",
+    "text": "She looks like her face is pulled back with ''face lifts'' tape. Or like she's pulling back her face like that scene in MIB I.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "efbs9pz",
+    "text": "Also. Read the sidebar, thank you.",
+    "true_labels": [
+      "gratitude"
+    ],
+    "bert_predicted": [
+      "gratitude"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "efefxzk",
+    "text": "SO MUCH.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "excitement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eduewbk",
+    "text": "Wondering why they change it",
+    "true_labels": [
+      "confusion"
+    ],
+    "bert_predicted": [
+      "curiosity",
+      "surprise"
+    ],
+    "llm_predicted": [
+      "confusion"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "eed4tkd",
+    "text": "It's perfectly fine",
+    "true_labels": [
+      "approval"
+    ],
+    "bert_predicted": [
+      "approval"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edwxq8e",
+    "text": "Just wanted to mention--Brazos Bend is closed due to flooding until next week.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "een3izh",
+    "text": "Everything mentioned below, plus when [NAME] dicey Walmart convict boyfriend changed [NAME] diaper. [NAME] found out and went ballistic, and rightfully so.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger",
+      "disappointment",
+      "surprise"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edexigy",
+    "text": "[NAME] I wish that was a more active sub :(",
+    "true_labels": [
+      "desire"
+    ],
+    "bert_predicted": [
+      "desire"
+    ],
+    "llm_predicted": [
+      "disappointment",
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ee8yyum",
+    "text": "Hello fellow Nashville Lions Fan!!!",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "admiration"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "effjbe8",
+    "text": "Now you're appropriating the Bullingdon Club's culture.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger",
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eeb3v0t",
+    "text": "Don't apologize. Go grab your favorite drink, some popcorn and watch 500 days of summer instead",
+    "true_labels": [
+      "caring"
+    ],
+    "bert_predicted": [
+      "caring"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edob826",
+    "text": "Please ask questions about moving to Denver in the Q&A sticky, thanks! Short answer: no ",
+    "true_labels": [
+      "gratitude"
+    ],
+    "bert_predicted": [
+      "gratitude"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ee9nsuj",
+    "text": "*looks at YouTube comments sections* Um. I'm not so sure.",
+    "true_labels": [
+      "confusion"
+    ],
+    "bert_predicted": [
+      "confusion"
+    ],
+    "llm_predicted": [
+      "disappointment",
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ed9f92q",
+    "text": "F then.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eepx0ka",
+    "text": "The emblem on the left looks like a killer mrs puff from spongebob.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ed220iq",
+    "text": "[NAME]. Go on Chapo.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eec3w8z",
+    "text": "Please correct me if I'm wrong, but I thought that the name changes had more to do with legal issues then geographical ones.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "approval",
+      "confusion",
+      "realization"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "eesyu4o",
+    "text": "The description of the cut marks that KZ gave in MaM sounds as if a sawz-all was used.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eed43l9",
+    "text": "> You don't own them so that they will give you eggs, you saved them and now coincidentally they give you eggs. This!",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement",
+      "gratitude"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eege4y9",
+    "text": "YOU MUST CONSTRUCT ADDITIONAL PYLONS",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ef9qs73",
+    "text": "No I’m not",
+    "true_labels": [
+      "disapproval"
+    ],
+    "bert_predicted": [
+      "disapproval"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eee2806",
+    "text": "This whole comment is just reeeing about reeeing. Reeeception",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement",
+      "excitement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edwby1b",
+    "text": "Yes, thank [NAME] the wisest of [NAME] live outside your country",
+    "true_labels": [
+      "gratitude"
+    ],
+    "bert_predicted": [
+      "gratitude"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edz7nsf",
+    "text": "So they are up thanks",
+    "true_labels": [
+      "gratitude"
+    ],
+    "bert_predicted": [
+      "gratitude"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "efdtck5",
+    "text": "I agree with this, but I'm guessing it's because he works from home and can work anywhere while she can't.",
+    "true_labels": [
+      "approval"
+    ],
+    "bert_predicted": [
+      "approval"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edw5iqn",
+    "text": "He seemed like he was about to run away and go do some meth.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger",
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eenndaw",
+    "text": "Nah I dont think the panthers are good enough",
+    "true_labels": [
+      "disapproval"
+    ],
+    "bert_predicted": [
+      "disapproval"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edpobf3",
+    "text": "That woman is on the fast track to being ostracized from that group real quick.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger",
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edvaqlg",
+    "text": "[NAME] is his ex.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger",
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eeh4hjb",
+    "text": "Love me some sushi! Have yo give this a try!",
+    "true_labels": [
+      "love"
+    ],
+    "bert_predicted": [
+      "love"
+    ],
+    "llm_predicted": [
+      "admiration",
+      "joy"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ef4eh5e",
+    "text": "No offense taken, and I agree with your last statement.",
+    "true_labels": [
+      "approval"
+    ],
+    "bert_predicted": [
+      "approval"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "edka5nb",
+    "text": "still would be great. especially if we get [NAME] from denver aswell in FA",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "admiration",
+      "approval",
+      "desire",
+      "excitement",
+      "optimism"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 0.0,
+    "llm_jaccard": 1.0,
+    "disagree": true,
+    "category": "llm_wins"
+  },
+  {
+    "id": "eewz7n5",
+    "text": "Hes a daywalker!",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "amusement"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ed64obw",
+    "text": "I have no clue either",
+    "true_labels": [
+      "confusion"
+    ],
+    "bert_predicted": [
+      "confusion"
+    ],
+    "llm_predicted": [
+      "neutral"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "eefbymp",
+    "text": "And then they got shot down",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "anger",
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  },
+  {
+    "id": "ee4sz2x",
+    "text": "Its a half baked RP. If they wanted to kill each other they oculd have just started shooting.",
+    "true_labels": [
+      "neutral"
+    ],
+    "bert_predicted": [
+      "neutral"
+    ],
+    "llm_predicted": [
+      "disappointment"
+    ],
+    "bert_jaccard": 1.0,
+    "llm_jaccard": 0.0,
+    "disagree": true,
+    "category": "bert_wins"
+  }
+]

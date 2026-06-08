@@ -1,6 +1,6 @@
 """
 ============================================================
-Prompts module — Load và build prompts cho Gemini inference
+Prompts module — Load và build prompts cho LLM inference
 ============================================================
 
 Usage:
@@ -42,7 +42,7 @@ def _load_template(mode: str) -> str:
 
 def build_prompt(text: str, mode: str = "zero_shot") -> str:
     """
-    Build prompt cho Gemini inference.
+    Build prompt cho LLM inference.
 
     Args:
         text: Input text cần classify
@@ -60,10 +60,13 @@ def build_prompt(text: str, mode: str = "zero_shot") -> str:
 
 def parse_response(response_text: str) -> list[str]:
     """
-    Parse JSON response từ Gemini, trả về list emotion names.
+    Parse JSON response từ LLM, trả về list emotion names.
 
-    Args:
-        response_text: Raw string từ Gemini API
+    Handles các format phổ biến từ open-weight models:
+      - {"emotions": ["joy", "sadness"]}   (dict, expected format)
+      - ["joy", "sadness"]                 (plain array)
+      - Extra text surrounding JSON        (model thêm chú thích)
+      - Markdown fences ```json ... ```
 
     Returns:
         List emotion names đã validate. Trả về ["neutral"] nếu parse fail.
@@ -74,16 +77,44 @@ def parse_response(response_text: str) -> list[str]:
     if not response_text:
         return ["neutral"]
 
-    # Strip markdown fences nếu có
-    clean = re.sub(r"```(?:json)?|```", "", response_text).strip()
+    # Strip markdown fences
+    clean = re.sub(r"```(?:json)?\s*|```", "", response_text).strip()
 
+    def _extract(obj) -> list[str]:
+        if isinstance(obj, dict):
+            emotions = obj.get("emotions", [])
+        elif isinstance(obj, list):
+            emotions = obj
+        else:
+            return []
+        return [e for e in emotions if e in VALID_EMOTIONS]
+
+    # Strategy 1: parse toàn bộ string
     try:
-        obj = json.loads(clean)
-        emotions = obj.get("emotions", [])
-        if not isinstance(emotions, list):
-            return ["neutral"]
-        # Chỉ giữ lại emotions hợp lệ
-        valid = [e for e in emotions if e in VALID_EMOTIONS]
-        return valid if valid else ["neutral"]
-    except (json.JSONDecodeError, AttributeError):
-        return ["neutral"]
+        valid = _extract(json.loads(clean))
+        if valid:
+            return valid
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Strategy 2: tìm JSON object {...} đầu tiên trong text
+    m = re.search(r'\{.*?\}', clean, re.DOTALL)
+    if m:
+        try:
+            valid = _extract(json.loads(m.group()))
+            if valid:
+                return valid
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Strategy 3: tìm JSON array [...] đầu tiên trong text
+    m = re.search(r'\[.*?\]', clean, re.DOTALL)
+    if m:
+        try:
+            valid = _extract(json.loads(m.group()))
+            if valid:
+                return valid
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    return ["neutral"]

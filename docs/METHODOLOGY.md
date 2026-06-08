@@ -108,25 +108,28 @@ where `w_c = pos_weight[c]`, `y_c ∈ {0,1}` is the ground-truth label, and `z_c
 
 ---
 
-## 3. Track B — LLM In-context Learning
+## 3. Track B — LLM In-context Learning (Offline)
 
-### 3.1 Model
+### 3.1 Models
 
-**Gemini 2.0 Flash** (`gemini-2.0-flash`) is used via the Google Generative AI SDK. It is accessed through the free-tier API (15 requests/minute limit). Temperature is fixed at **0.0** for deterministic outputs; `response_mime_type = "application/json"` enforces structured JSON output.
+Two open-weight instruction-tuned models are evaluated, both running **locally without an API key**:
 
-### 3.2 Zero-shot vs Few-shot
+| Experiment | Model | HuggingFace ID | Size |
+|------------|-------|----------------|------|
+| EXP-03 | Llama 3.2 3B Instruct | `meta-llama/Llama-3.2-3B-Instruct` | 3B |
+| EXP-04 | Qwen2.5 3B Instruct | `Qwen/Qwen2.5-3B-Instruct` | 3B |
 
-| Setting | Context given | Expected advantage |
-|---------|---------------|--------------------|
-| Zero-shot | Task instruction + emotion list | No labelled data needed |
-| Few-shot (k=5) | Zero-shot prompt + 5 examples | Anchors output format; may improve rare-class recall |
+**Inference backend:** HuggingFace `transformers` text-generation pipeline.
+- `do_sample=False` for deterministic output (equivalent to temperature=0)
+- `max_new_tokens=128` (sufficient for a JSON list of emotion names)
+- `device_map="auto"` — places layers on GPU if available, falls back to CPU
+- Optional 4-bit quantization via `bitsandbytes` for VRAM < 8 GB
 
-The 5 few-shot examples are **fixed and manually curated** — they are not selected dynamically from the training set. They were chosen to cover:
-- Positive, multi-label (e.g., excitement + pride)
-- Negative, multi-label (e.g., anger + disgust)
-- Neutral (no emotion)
-- Rare class (grief + sadness)
-- Mild surprise + curiosity
+The chat template is applied via `tokenizer.apply_chat_template()` so each model receives its native instruction format. The generated response is parsed by `parse_response()` which extracts JSON from the model's text output.
+
+### 3.2 Zero-shot Setting
+
+Both models are tested in **zero-shot** mode — the prompt provides the task description and the full emotion vocabulary, but no labelled examples. This is the strictest test of in-context generalization.
 
 ### 3.3 Prompt Design Rationale
 
@@ -138,9 +141,9 @@ Key decisions:
 
 3. **Neutral fallback**: The instruction explicitly says to use `["neutral"]` when no emotion is discernible — matching the dataset convention and preventing empty predictions.
 
-4. **JSON-only output**: Gemini is configured with `response_mime_type="application/json"` plus an explicit instruction to output only JSON. This avoids parsing ambiguity from free-text explanations.
+4. **JSON output instruction**: The prompt explicitly requests a JSON list. Unlike Gemini's native `response_mime_type`, open-weight models require the JSON format constraint to be enforced in the prompt text itself. The `parse_response()` parser handles minor deviations (extra text around the JSON list).
 
-5. **Temperature = 0**: Deterministic sampling ensures reproducible results for evaluation. Variation from sampling noise would confound comparison.
+5. **Deterministic decoding (`do_sample=False`)**: Eliminates sampling noise so results are fully reproducible across runs.
 
 ---
 
@@ -165,7 +168,9 @@ For LLM inference, there is no threshold — the model directly outputs emotion 
 
 ### 4.3 Evaluation Samples
 
-Due to API rate limits (15 RPM, free tier), LLM evaluation is run on a **random subset of 2,000 test samples** (seed=42). Fine-tuned models are evaluated on the **full test set of 5,427 samples**. Results on the 2,000-sample subset are reported separately for fair comparison.
+To keep LLM inference time practical on a single local GPU, evaluation is run on a **random subset of 2,000 test samples** (seed=42). Fine-tuned models are evaluated on the **full test set of 5,427 samples**. Results on the 2,000-sample subset are reported separately for fair comparison.
+
+Inference is also evaluated on the same 2,000-sample subset for both models to allow direct Llama vs. Qwen comparison.
 
 ---
 
@@ -200,7 +205,7 @@ LLM inference uses `temperature=0.0` for deterministic output.
 | Transformers | 4.30+ |
 | datasets | 2.x |
 | scikit-learn | 1.x |
-| google-generativeai | 0.8+ |
+| bitsandbytes | 0.41+ (optional, cho 4-bit quant) |
 | numpy | 1.24+ |
 
 Full pinned versions are in `requirements.txt`.

@@ -1,0 +1,15 @@
+{
+  "total_llm_samples": 2000,
+  "disagreements": 1862,
+  "disagreement_rate_pct": 93.1,
+  "bert_exact_wins": 160,
+  "llm_exact_wins": 181,
+  "categories": {
+    "bert_closer": 807,
+    "both_wrong_similar": 653,
+    "llm_closer": 102,
+    "llm_wins": 181,
+    "both_correct": 97,
+    "bert_wins": 160
+  }
+}

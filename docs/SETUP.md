@@ -67,25 +67,50 @@ Mất ~3-5 phút.
 
 ---
 
-## 6. Setup API Keys
+## 6. Setup LLM Models (Offline)
 
-### 6.1. Tạo file `.env`
+Track B dùng Llama và Qwen chạy **offline trên local GPU** — không cần API key, không cần billing.
+
+### 6.1. Tải model về máy (lần đầu cần internet)
+
+Model sẽ tự tải về HuggingFace cache khi chạy inference lần đầu:
+
+```bash
+# Llama 3.2 3B (~6 GB) — tải tự động
+python -m src.llm_inference --config configs/llama_zeroshot.yaml --n_samples 5
+
+# Qwen2.5 3B (~6 GB) — tải tự động
+python -m src.llm_inference --config configs/qwen_zeroshot.yaml --n_samples 5
+```
+
+Sau khi tải xong, bật `local_files_only: true` trong YAML để chạy hoàn toàn offline.
+
+### 6.2. Yêu cầu VRAM
+
+| Setup | VRAM tối thiểu | Ghi chú |
+|-------|----------------|---------|
+| float16 (mặc định) | ~7–8 GB | Máy trường RTX 2000 Ada (16 GB) ✓ |
+| 4-bit quantization | ~2–3 GB | Bật `load_in_4bit: true` trong YAML, cần `bitsandbytes` |
+| CPU-only | RAM ~12 GB | Rất chậm (~1 phút/sample) |
+
+Để bật 4-bit trên máy nhà (4 GB VRAM):
+```yaml
+# Trong configs/llama_zeroshot.yaml hoặc qwen_zeroshot.yaml
+model:
+  load_in_4bit: true
+```
+
+Cài thêm:
+```bash
+pip install bitsandbytes
+```
+
+### 6.3. W&B API Key (free, cho theo dõi training)
 
 ```bash
 cp .env.example .env
 ```
 
-### 6.2. Lấy Gemini API Key (free)
-1. Vào https://aistudio.google.com/apikey
-2. Đăng nhập Google
-3. Click "Create API key"
-4. Copy key
-5. Paste vào `.env`:
-   ```
-   GEMINI_API_KEY=AIza...
-   ```
-
-### 6.3. Lấy W&B API Key (free)
 1. Đăng ký tại https://wandb.ai/signup
 2. Vào https://wandb.ai/authorize
 3. Copy API key

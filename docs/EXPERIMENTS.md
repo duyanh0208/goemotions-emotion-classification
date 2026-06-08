@@ -99,11 +99,11 @@ Best epoch: **3** (Val F1-macro = 0.4305)
 
 | Field | Value |
 |-------|-------|
-| Date | TBD |
+| Date | 2026-05-28 |
 | Config | `configs/roberta_base.yaml` |
 | Model | `roberta-base` |
-| Hardware | TBD |
-| Training time | TBD |
+| Hardware | NVIDIA RTX 2000 Ada Generation (17.2 GB VRAM) |
+| Training time | 37m 57s |
 | Epochs | 3 |
 | Batch size | 16 |
 | Learning rate | 2e-5 |
@@ -111,86 +111,148 @@ Best epoch: **3** (Val F1-macro = 0.4305)
 
 ### Results
 
-| Metric | Val | Test |
-|--------|-----|------|
-| F1-macro | TBD | TBD |
-| F1-micro | TBD | TBD |
-| F1-weighted | TBD | TBD |
-| Hamming Loss | TBD | TBD |
-| Best epoch | TBD | — |
+| Metric | Epoch 1 Val | Epoch 2 Val | Epoch 3 Val | Test |
+|--------|------------|------------|------------|------|
+| F1-macro | 0.4049 | 0.3785 | **0.4164** | **0.4111** |
+| F1-micro | 0.4302 | 0.4216 | 0.4658 | 0.4618 |
+| F1-weighted | 0.5050 | 0.5115 | 0.5302 | 0.5289 |
+| Hamming Loss | 0.0914 | 0.0953 | 0.0788 | 0.0795 |
+| Train Loss | 0.7088 | 0.4716 | 0.3764 | — |
+
+Best epoch: **3** (Val F1-macro = 0.4164)
+
+### Per-class F1 (Test)
+
+**Top 5:**
+| Emotion | F1 |
+|---------|-----|
+| gratitude | 0.838 |
+| amusement | 0.748 |
+| love | 0.732 |
+| neutral | 0.684 |
+| admiration | 0.630 |
+
+**Bottom 5:**
+| Emotion | F1 |
+|---------|-----|
+| relief | 0.184 |
+| grief | 0.196 |
+| disappointment | 0.210 |
+| nervousness | 0.234 |
+| embarrassment | 0.249 |
 
 ### Observations
 
-> TBD — Fill after running `python -m src.train --config configs/roberta_base.yaml`.
-> Hypothesis: RoBERTa should outperform BERT by ~2–4 F1-macro points (improved
-> pre-training: no NSP, more data, dynamic masking).
+- Test F1-macro = **0.4111**, thấp hơn BERT (0.4159) một chút — **trái với hypothesis** ban đầu (kỳ vọng RoBERTa tốt hơn 2-4 điểm).
+- Val F1-macro epoch 2 bị drop (0.378) rồi recover epoch 3 — RoBERTa có training curve không ổn định hơn BERT trong setup này.
+- Pattern per-class tương tự BERT: emotions rõ ràng cao (gratitude, amusement), rare classes thấp (relief, grief).
+- Kết luận: với cùng hyperparameters 3 epochs, BERT và RoBERTa cho kết quả tương đương. RoBERTa có thể cần tune thêm lr hoặc epochs.
 
 ---
 
-## EXP-03: gemini_zeroshot
+## EXP-03: llama_zeroshot
 
 | Field | Value |
 |-------|-------|
-| Date | TBD |
-| Config | `configs/gemini_zeroshot.yaml` |
-| Model | `gemini-2.0-flash` |
-| Hardware | API — no local GPU |
-| Inference time | TBD (~9 min for 2000 samples at 15 RPM) |
-| Temperature | 0.0 |
+| Date | 2026-06-08 |
+| Config | `configs/llama_zeroshot.yaml` |
+| Model | `meta-llama/Llama-3.2-3B-Instruct` |
+| Hardware | NVIDIA RTX 2000 Ada Generation (17.2 GB VRAM) |
+| Inference time | 44m 18s (2000 samples, ~1.33s/sample) |
+| Temperature | 0.0 (do_sample=False) |
 | n_samples | 2000 (random subset, seed=42) |
+| Quantization | false (float16 trên CUDA) |
 
 ### Results
 
 | Metric | Value |
 |--------|-------|
-| F1-macro | TBD |
-| F1-micro | TBD |
-| F1-weighted | TBD |
-| Hamming Loss | TBD |
+| F1-macro | **0.2126** |
+| F1-micro | 0.2306 |
+| F1-weighted | 0.2914 |
+| Hamming Loss | 0.1068 |
+| n_samples | 2000 |
+
+### Per-class F1 (selected)
+
+**Top 5:**
+| Emotion | F1 |
+|---------|-----|
+| gratitude | 0.662 |
+| amusement | 0.519 |
+| love | 0.476 |
+| admiration | 0.469 |
+| joy | 0.329 |
+
+**Bottom 5:**
+| Emotion | F1 |
+|---------|-----|
+| nervousness | 0.034 |
+| embarrassment | 0.036 |
+| pride | 0.035 |
+| annoyance | 0.049 |
+| disgust | 0.077 |
 
 ### Observations
 
-> TBD — Fill after running:
-> `python -m src.llm_inference --config configs/gemini_zeroshot.yaml --n_samples 2000`
->
-> Note: Checkpoint resume is supported — if interrupted, re-run the same command.
->
-> Hypothesis: Zero-shot LLM will underperform fine-tuned BERT on F1-macro overall,
-> but may show stronger recall on rare classes (grief, pride, relief) where the
-> fine-tuned model has few training examples.
+- F1-macro = **0.2126**, thấp hơn Qwen2.5 3B (0.2219) một chút — nhưng pattern khác hẳn.
+- **Llama mạnh hơn Qwen ở rare/subtle classes:** grief=0.125 (Qwen=0.000), caring=0.214 (Qwen=0.000), neutral=0.321 (Qwen=0.266). Đây là bằng chứng partial support cho RQ3 khi so sánh giữa các LLM.
+- **Hamming Loss cao hơn Qwen** (0.1068 vs 0.0713): Llama over-predict nhiều labels hơn — chiến lược aggressive hơn Qwen.
+- **Trade-off:** Llama có recall cao hơn (bắt được nhiều rare emotions) nhưng precision thấp hơn; Qwen precision cao hơn nhưng bỏ sót hoàn toàn nhiều rare classes.
+- Cả hai LLM đều kém xa fine-tuned BERT (0.4159) — **RQ1 confirmed rất mạnh**.
 
 ---
 
-## EXP-04: gemini_fewshot_k5
+## EXP-04: qwen_zeroshot
 
 | Field | Value |
 |-------|-------|
-| Date | TBD |
-| Config | `configs/gemini_fewshot.yaml` |
-| Model | `gemini-2.0-flash` |
-| Hardware | API — no local GPU |
-| Inference time | TBD |
-| Temperature | 0.0 |
-| n_samples | 2000 (same random subset as EXP-03) |
-| k examples | 5 (fixed, curated) |
+| Date | 2026-06-08 |
+| Config | `configs/qwen_zeroshot.yaml` |
+| Model | `Qwen/Qwen2.5-3B-Instruct` |
+| Hardware | NVIDIA RTX 2000 Ada Generation (17.2 GB VRAM) |
+| Inference time | 15m 53s (2000 samples, ~0.48s/sample) |
+| Temperature | 0.0 (do_sample=False) |
+| n_samples | 2000 (random subset, seed=42) |
+| Quantization | false (float16 trên CUDA) |
 
 ### Results
 
 | Metric | Value |
 |--------|-------|
-| F1-macro | TBD |
-| F1-micro | TBD |
-| F1-weighted | TBD |
-| Hamming Loss | TBD |
+| F1-macro | **0.2219** |
+| F1-micro | 0.2717 |
+| F1-weighted | 0.2803 |
+| Hamming Loss | 0.0713 |
+| n_samples | 2000 |
+
+### Per-class F1 (selected)
+
+**Top 5:**
+| Emotion | F1 |
+|---------|-----|
+| gratitude | 0.692 |
+| admiration | 0.470 |
+| love | 0.449 |
+| sadness | 0.449 |
+| fear | 0.440 |
+
+**Bottom 5:**
+| Emotion | F1 |
+|---------|-----|
+| caring | 0.000 |
+| grief | 0.000 |
+| pride | 0.000 |
+| approval | 0.030 |
+| remorse | 0.091 |
 
 ### Observations
 
-> TBD — Fill after running:
-> `python -m src.llm_inference --config configs/gemini_fewshot.yaml --n_samples 2000`
->
-> Hypothesis: Few-shot (k=5) will improve over zero-shot by anchoring the output
-> format and demonstrating multi-label behaviour; gains expected on rare classes
-> and neutral-vs-low-emotion edge cases.
+- F1-macro = **0.2219**, thấp hơn BERT fine-tune (0.4159) gần **2 lần** → **RQ1 confirmed mạnh**: fine-tuned model vượt LLM zero-shot đáng kể.
+- **Hypothesis RQ3 bị bác bỏ:** LLM không mạnh hơn ở rare classes — grief=0.000, caring=0.000, pride=0.000, thấp hơn cả BERT (grief=0.222, caring≈0.3).
+- **Neutral recall kém** (F1=0.266 vs BERT 0.682): Qwen có xu hướng over-predict emotions — thêm nhãn vào các text thực ra là neutral. Ví dụ: "KAMALA 2020!!!" → Qwen dự đoán [excitement], ground truth = [neutral].
+- **Qwen mạnh hơn ở single clear-emotion cases:** Khi chỉ có 1 emotion rõ ràng (fear=0.440, gratitude=0.692), Qwen khá tốt. Nhưng với multi-label phức tạp hay cảm xúc tinh tế → fail hoàn toàn.
+- **Error analysis** (2000 samples): disagreement rate với BERT = 93.1%, BERT closer to truth = 40.4%, LLM closer = 5.1%, LLM exact wins = 9.1% (181 cases), BERT exact wins = 8.0% (160 cases). LLM wins nhiều hơn BERT ở exact match nhờ precision cao, nhưng BERT thường gần đúng hơn (partial credit).
 
 ---
 
@@ -201,8 +263,8 @@ Best epoch: **3** (Val F1-macro = 0.4305)
 
 | Model | Method | F1-macro | F1-micro | Hamming Loss | Eval set |
 |-------|--------|----------|----------|--------------|----------|
-| BERT-base | Fine-tune | **0.4159** | **0.4650** | **0.0778** | Full test (5427) |
-| RoBERTa-base | Fine-tune | TBD | TBD | TBD | Full test (5427) |
-| Gemini 2.5 Flash | Zero-shot | TBD | TBD | TBD | 2K subset |
-| Gemini 2.5 Flash | Few-shot (k=5) | TBD | TBD | TBD | 2K subset |
+| BERT-base | Fine-tune | **0.4159** | **0.4650** | 0.0778 | Full test (5427) |
+| RoBERTa-base | Fine-tune | 0.4111 | 0.4618 | 0.0795 | Full test (5427) |
+| Qwen2.5 3B Instruct | Zero-shot (offline) | 0.2219 | 0.2717 | **0.0713** | 2K subset |
+| Llama 3.2 3B Instruct | Zero-shot (offline) | 0.2126 | 0.2306 | 0.1068 | 2K subset |
 | *Paper baseline* | *BERT Fine-tune* | *0.46* | *—* | *—* | *Demszky 2020* |

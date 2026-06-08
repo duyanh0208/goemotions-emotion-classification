@@ -91,11 +91,16 @@ Input text
 - `pos_weight[c] = (N_negative_c) / (N_positive_c)`, clip ở [1, 50]
 - Rationale: Class hiếm → weight cao → model bị "phạt" nặng hơn khi miss
 
-### 3.3. Track B: LLM In-context Learning
+### 3.3. Track B: LLM In-context Learning (Offline)
 
-**Model:** Gemini 2.0 Flash (Google AI)
-- Free tier: 1500 requests/day
-- JSON mode native (structured output)
+**Models (chạy local, không cần API key):**
+- `meta-llama/Llama-3.2-3B-Instruct` — EXP-03 (zero-shot)
+- `Qwen/Qwen2.5-3B-Instruct` — EXP-04 (zero-shot, so sánh kiến trúc)
+
+**Inference backend:** HuggingFace `transformers` pipeline, local GPU
+- Device: `auto` (CUDA nếu có, fallback CPU)
+- 4-bit quantization (`bitsandbytes`) cho máy có VRAM < 8 GB
+- Không có rate limit, không cần billing
 
 **Zero-shot prompt:**
 ```
@@ -108,10 +113,10 @@ Output a JSON list of applicable emotion names.
 ```
 
 **Few-shot prompt (k=5):**
-- Cùng base prompt + 5 examples đa dạng từ training set
-- Examples chọn để cover các emotion types (positive, negative, neutral)
+- Cùng base prompt + 5 examples curated từ training set
+- Examples cover: positive multi-label, negative multi-label, neutral, rare class, mild surprise
 
-**Evaluation:** Cùng test set như Track A (subset 2000 samples vì quota)
+**Evaluation:** Cùng test set như Track A (subset 2000 samples vì tốc độ inference local)
 
 ### 3.4. Metrics
 
@@ -148,13 +153,13 @@ Output a JSON list of applicable emotion names.
 ### Week 2 (27 May - 2 June): LLM Track + Analysis
 | Day | Task | Deliverable |
 |-----|------|-------------|
-| Mon | Setup Gemini API, `llm_inference.py` | Working LLM client |
-| Tue | ✅ Fix bugs (Unicode, CUDA/datasets fork, Gemini quota), run smoke tests | Pipeline verified |
+| Mon | ✅ Migrate sang Llama offline, `llm_inference.py` + configs | Working LLM client (no API) |
+| Tue | ✅ Fix bugs (Unicode, CUDA/datasets fork), run smoke tests | Pipeline verified |
 | Wed | ✅ EXP-01 BERT-base full training (F1-macro=0.4159) | `results/metrics/bert_base_baseline.json` |
-| Thu | EXP-02 RoBERTa training + EXP-03/04 Gemini (cần billing) | — |
-| Fri | Error analysis notebook | 03_error_analysis.ipynb |
-| Sat | Disagreement analysis | Notebook + insights |
-| Sun | Buffer / start writeup | Report outline |
+| Thu | ✅ EXP-02 RoBERTa training (F1-macro=0.4111) | `results/metrics/roberta_base_baseline.json` |
+| Fri | EXP-03 Llama 3.2 3B zero-shot inference | `results/metrics/llama_zeroshot_metrics.json` |
+| Sat | EXP-04 Qwen2.5 3B zero-shot + Error analysis | `results/metrics/qwen_zeroshot_metrics.json` |
+| Sun | Disagreement analysis | Notebook + insights |
 
 ### Week 3 (3-9 June): Writeup
 | Day | Task | Deliverable |
@@ -178,7 +183,8 @@ Output a JSON list of applicable emotion names.
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
 | BERT OOM trên máy nhà (4GB) | High | Medium | Train trên máy trường (16GB) hoặc giảm batch size |
-| Gemini API rate limit | Medium | Low | Chia nhiều ngày, dùng subset |
+| Llama inference chậm trên CPU | High | Medium | Dùng máy trường (GPU), bật 4-bit nếu VRAM thấp |
+| Llama output format không parse được | Medium | Low | `parse_response()` có fallback `["neutral"]` |
 | F1-macro thấp hơn paper baseline | Low | High | Reproduce với hyperparameters đúng |
 | Domain knowledge thiếu | Medium | Medium | Đọc paper kỹ, hỏi cô Oanh |
 | Thời gian không đủ | Medium | High | Buffer 20%, ưu tiên Track A trước |
@@ -237,7 +243,7 @@ Output a JSON list of applicable emotion names.
 - Python 3.10, PyTorch 2.x
 - HuggingFace Transformers, Datasets
 - Weights & Biases (tracking)
-- Google Gemini API
+- `bitsandbytes` (4-bit quantization cho LLM trên GPU nhỏ)
 - Jupyter, VS Code, Git
 
 ### Datasets
@@ -258,3 +264,4 @@ Xem mục References trong [README.md](../README.md).
 |------|--------|--------|
 | 2026-05-20 | Initial draft | DA |
 | 2026-05-21 | Confirm scope: NLP only, BERT vs LLM | DA |
+| 2026-06-03 | Chuyển Track B từ Gemini API sang Llama/Qwen offline; cập nhật timeline, risks, tools | DA |

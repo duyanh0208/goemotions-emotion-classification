@@ -8,22 +8,22 @@ Usage:
 
 What it does:
     1. Scans results/metrics/ for all *_metrics.json files
-    2. Prints a comparison table: Model | Method | F1-macro | F1-micro | Hamming Loss
-    3. Highlights the best F1-macro row
-    4. Saves table → results/metrics/comparison_table.csv
-    5. Saves bar chart → results/plots/model_comparison.png
+    2. Loads threshold-tuning results if available
+    3. Prints comparison table: Model | Method | Threshold | F1-macro | F1-micro | Hamming Loss
+    4. Highlights the best F1-macro row
+    5. Saves table → results/metrics/comparison_table.csv
+    6. Saves bar chart → results/plots/model_comparison.png
 """
 
 import json
 import sys
 from pathlib import Path
 
-# Allow running from repo root without installing as a package
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import matplotlib
-matplotlib.use("Agg")  # non-interactive backend (safe for headless envs)
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -35,14 +35,20 @@ PLOTS_DIR = ROOT / "results" / "plots"
 CSV_OUT = METRICS_DIR / "comparison_table.csv"
 PLOT_OUT = PLOTS_DIR / "model_comparison.png"
 
-# Friendly display names: config experiment name → (Model, Method)
 DISPLAY_MAP = {
-    "bert_base_baseline": ("BERT-base", "Fine-tune"),
-    "roberta_base_baseline": ("RoBERTa-base", "Fine-tune"),
-    "llama_zeroshot": ("Llama 3.2 3B", "Zero-shot"),
-    "qwen_zeroshot": ("Qwen2.5 3B", "Zero-shot"),
-    "llama_fewshot": ("Llama 3.2 3B", "Few-shot (k=5)"),
-    "qwen_fewshot": ("Qwen2.5 3B", "Few-shot (k=5)"),
+    "bert_base_baseline": ("BERT-base", "Fine-tune", "t=0.5"),
+    "roberta_base_baseline": ("RoBERTa-base", "Fine-tune", "t=0.5"),
+    "gemini_zeroshot": ("Gemini 2.0 Flash", "Zero-shot (API)", "—"),
+    "llama_zeroshot": ("Llama 3.2 3B", "Zero-shot", "—"),
+    "qwen_zeroshot": ("Qwen2.5 3B", "Zero-shot", "—"),
+    "llama_fewshot": ("Llama 3.2 3B", "Few-shot (k=5)", "—"),
+    "qwen_fewshot": ("Qwen2.5 3B", "Few-shot (k=5)", "—"),
+}
+
+# Threshold-tuning result files: stem → (Model, Method, threshold label)
+THRESHOLD_MAP = {
+    "bert_base_threshold_tuning": ("BERT-base", "Fine-tune", "t=0.9†"),
+    "roberta_base_threshold_tuning": ("RoBERTa-base", "Fine-tune", "t=0.9†"),
 }
 
 
@@ -72,11 +78,10 @@ def _extract_metrics(data: dict) -> dict:
 
 
 def load_all_metrics(metrics_dir: Path) -> list[dict]:
-    """Load both *_metrics.json (LLM) and *.json (train) files."""
+    """Load baseline metrics + threshold-tuning results."""
     rows = []
     seen: set[str] = set()
 
-    # Scan all JSON files; skip debug runs (n_samples < 100)
     files = sorted(metrics_dir.glob("*.json"))
     if not files:
         print(f"⚠️  No metrics files found in {metrics_dir}")
@@ -90,10 +95,29 @@ def load_all_metrics(metrics_dir: Path) -> list[dict]:
             print(f"⚠️  Skipping {fpath.name}: JSON error — {exc}")
             continue
 
-        experiment = data.get("experiment", fpath.stem.replace("_metrics", ""))
-        if experiment not in DISPLAY_MAP:
+        stem = fpath.stem
+
+        # ── Threshold-tuning files ──────────────────────────────────
+        if stem in THRESHOLD_MAP:
+            model_name, method, thresh_label = THRESHOLD_MAP[stem]
+            g = data.get("global_tuned", {})
+            if g and stem not in seen:
+                seen.add(stem)
+                rows.append({
+                    "Experiment": stem,
+                    "Model": model_name,
+                    "Method": method,
+                    "Threshold": thresh_label,
+                    "F1-macro": g.get("f1_macro", float("nan")),
+                    "F1-micro": g.get("f1_micro", float("nan")),
+                    "Hamming Loss": float("nan"),
+                    "N Samples": data.get("n_test_samples", "—"),
+                })
             continue
-        if experiment in seen:
+
+        # ── Baseline experiment files ───────────────────────────────
+        experiment = data.get("experiment", stem.replace("_metrics", ""))
+        if experiment not in DISPLAY_MAP or experiment in seen:
             continue
 
         m = _extract_metrics(data)
@@ -101,17 +125,17 @@ def load_all_metrics(metrics_dir: Path) -> list[dict]:
             continue
 
         n_samples = m.get("n_samples", "—")
-        # Skip tiny debug runs
         if isinstance(n_samples, int) and n_samples < 100:
-            print(f"  Skipping {fpath.name} (n_samples={n_samples}, likely debug run)")
+            print(f"  Skipping {fpath.name} (n_samples={n_samples}, debug run)")
             continue
 
         seen.add(experiment)
-        model_name, method = DISPLAY_MAP[experiment]
+        model_name, method, thresh_label = DISPLAY_MAP[experiment]
         rows.append({
             "Experiment": experiment,
             "Model": model_name,
             "Method": method,
+            "Threshold": thresh_label,
             "F1-macro": m.get("f1_macro", float("nan")),
             "F1-micro": m.get("f1_micro", float("nan")),
             "Hamming Loss": m.get("hamming_loss", float("nan")),
@@ -127,18 +151,23 @@ def print_table(df: pd.DataFrame) -> None:
         return
 
     best_idx = df["F1-macro"].idxmax()
-    print("\n" + "=" * 72)
-    print(f"{'Model':<20} {'Method':<18} {'F1-macro':>10} {'F1-micro':>10} {'Hamm.Loss':>12}")
-    print("-" * 72)
+    print("\n" + "=" * 82)
+    print(f"{'Model':<20} {'Method':<18} {'Thresh':>8} {'F1-macro':>10} {'F1-micro':>10} {'Hamm.Loss':>12}")
+    print("-" * 82)
     for i, row in df.iterrows():
         marker = " ◀ BEST" if i == best_idx else ""
+        hl = row.get("Hamming Loss", float("nan"))
+        hl_str = f"{hl:>12.4f}" if hl == hl else f"{'—':>12}"
         print(
             f"{row['Model']:<20} {row['Method']:<18} "
+            f"{row.get('Threshold', '—'):>8} "
             f"{row['F1-macro']:>10.4f} {row['F1-micro']:>10.4f} "
-            f"{row['Hamming Loss']:>12.4f}{marker}"
+            f"{hl_str}{marker}"
         )
-    print("=" * 72)
+    print("=" * 82)
+    print(f"† threshold tuned on test set (upper bound)")
     print(f"\nBest F1-macro: {df.loc[best_idx, 'Model']} / {df.loc[best_idx, 'Method']}"
+          f" [{df.loc[best_idx, 'Threshold']}]"
           f"  →  {df.loc[best_idx, 'F1-macro']:.4f}\n")
 
 
@@ -146,32 +175,48 @@ def save_bar_chart(df: pd.DataFrame, out_path: Path) -> None:
     """Save a horizontal bar chart comparing F1-macro across models."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    labels = [f"{row.Model}\n({row.Method})" for row in df.itertuples()]
+    labels = [f"{row.Model}\n({row.Method}, {row.Threshold})" for row in df.itertuples()]
     values = df["F1-macro"].tolist()
-    colors = ["#4C72B0" if v != max(values) else "#DD8452" for v in values]
+    max_val = max(values)
 
-    fig, ax = plt.subplots(figsize=(9, max(3, len(labels) * 1.1)))
+    # Color: orange = best, light blue = t=0.9 tuned, dark blue = others
+    colors = []
+    for row, v in zip(df.itertuples(), values):
+        if v == max_val:
+            colors.append("#DD8452")       # best
+        elif "0.9" in str(getattr(row, "Threshold", "")):
+            colors.append("#6EB5D9")       # threshold-tuned
+        else:
+            colors.append("#4C72B0")       # baseline
+
+    fig, ax = plt.subplots(figsize=(10, max(3, len(labels) * 1.1)))
     bars = ax.barh(labels, values, color=colors, edgecolor="white", height=0.55)
 
-    # Value labels on bars
     for bar, val in zip(bars, values):
         ax.text(
             bar.get_width() + 0.005,
             bar.get_y() + bar.get_height() / 2,
             f"{val:.4f}",
-            va="center",
-            ha="left",
-            fontsize=10,
+            va="center", ha="left", fontsize=10,
         )
 
     ax.set_xlabel("F1-macro", fontsize=12)
     ax.set_title("Model Comparison — F1-macro (GoEmotions test set)", fontsize=13, pad=14)
-    ax.set_xlim(0, min(1.0, max(values) + 0.12))
+    ax.set_xlim(0, min(1.0, max_val + 0.14))
     ax.invert_yaxis()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.axvline(x=0.46, color="gray", linestyle="--", linewidth=1, label="Paper baseline (0.46)")
-    ax.legend(fontsize=9)
+    ax.axvline(x=0.5167, color="orange", linestyle=":", linewidth=1, label="BERT t=0.9 (0.5167)")
+
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor="#DD8452", label="Best result"),
+        Patch(facecolor="#6EB5D9", label="Threshold-tuned (t=0.9†)"),
+        Patch(facecolor="#4C72B0", label="Baseline (t=0.5)"),
+        plt.Line2D([0], [0], color="gray", linestyle="--", label="Paper baseline (0.46)"),
+    ]
+    ax.legend(handles=legend_elements, fontsize=8, loc="lower right")
 
     plt.tight_layout()
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
@@ -198,7 +243,7 @@ def main() -> None:
     print_table(df)
 
     # Save CSV
-    display_df = df[["Model", "Method", "F1-macro", "F1-micro", "Hamming Loss", "N Samples"]]
+    display_df = df[["Model", "Method", "Threshold", "F1-macro", "F1-micro", "Hamming Loss", "N Samples"]]
     display_df.to_csv(CSV_OUT, index=False)
     print(f"Comparison table saved → {CSV_OUT}")
 

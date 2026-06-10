@@ -1,15 +1,17 @@
 """
 ============================================================
-LLM Inference module — Llama 3.1 8B Instruct on GoEmotions
+LLM Inference module — HuggingFace LLM on GoEmotions
 ============================================================
 
 Provides:
-    - LlamaInferenceClient: Load model locally, run inference with
-      checkpoint resume and configurable batch size.
+    - HFInferenceClient: Load any HF text-generation model locally,
+      run inference with checkpoint resume. Supports Llama, Qwen, etc.
     - run_inference(): Main entry-point
 
 Usage (module):
-    python -m src.llm_inference --config configs/llama_zeroshot.yaml --n_samples 2000
+    python -m src.llm_inference --config configs/llama_zeroshot.yaml
+    python -m src.llm_inference --config configs/qwen_zeroshot.yaml
+    python -m src.llm_inference --config configs/llama_fewshot.yaml
 
 Features:
     - Local inference  : no API key, no rate limits
@@ -65,16 +67,25 @@ def _load_checkpoint(checkpoint_path: Path) -> Dict[str, Any]:
 
 def _save_checkpoint(checkpoint: Dict[str, Any], checkpoint_path: Path) -> None:
     """Atomic save to avoid corruption: write to .tmp then rename."""
+    import shutil
     tmp_path = checkpoint_path.with_suffix(".tmp")
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(checkpoint, f, indent=2, ensure_ascii=False)
-    tmp_path.replace(checkpoint_path)
+    try:
+        tmp_path.replace(checkpoint_path)
+    except PermissionError:
+        # Windows: os.replace can fail if target is locked by antivirus/indexer
+        shutil.copy2(str(tmp_path), str(checkpoint_path))
+        try:
+            tmp_path.unlink()
+        except Exception:
+            pass
 
 
 # ============================================================
 # Llama Client
 # ============================================================
-class LlamaInferenceClient:
+class HFInferenceClient:
     """
     Local Llama inference client for GoEmotions multi-label classification.
 
@@ -152,7 +163,7 @@ class LlamaInferenceClient:
         logger.info("Model loaded: %s (mode=%s)", self.model_name, self.prompt_mode)
 
     # ----------------------------------------------------------
-    def _call_llama(self, text: str) -> str:
+    def _call_model(self, text: str) -> str:
         """
         Run a single inference call.
 
@@ -192,10 +203,10 @@ class LlamaInferenceClient:
         ds_full = load_goemotions()
         split_ds = ds_full[self.split]
 
-        np.random.seed(self.seed)
+        rng = np.random.default_rng(self.seed)
         total = len(split_ds)
         n = min(self.n_samples, total)
-        indices = np.random.choice(total, size=n, replace=False).tolist()
+        indices = rng.choice(total, size=n, replace=False).tolist()
         logger.info("Sampling %d / %d examples (seed=%d)", n, total, self.seed)
 
         checkpoint_path = self.output_dir / "checkpoint.json"
@@ -220,7 +231,7 @@ class LlamaInferenceClient:
             raw_response = ""
             predicted_labels: List[str] = ["neutral"]
             try:
-                raw_response = self._call_llama(text)
+                raw_response = self._call_model(text)
                 predicted_labels = parse_response(raw_response)
             except Exception as exc:
                 logger.error("Skipping sample %s: %s", sample_id, exc)
@@ -316,7 +327,7 @@ def run_inference(
     config = load_config(config_path)
     if n_samples is not None:
         config["inference"]["n_samples"] = n_samples
-    client = LlamaInferenceClient(config)
+    client = HFInferenceClient(config)
     return client.run()
 
 

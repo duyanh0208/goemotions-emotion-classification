@@ -26,7 +26,6 @@ inference:
 
 prompt:
   type: "zero_shot"
-  template_path: "src/prompts/zeroshot_template.txt"
 
 paths:
   output_dir: "results/llm/gemini_zeroshot"

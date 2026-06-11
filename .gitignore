@@ -54,6 +54,16 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# BI&PA data directories
+bi_dashboard/data/raw/*
+bi_dashboard/data/processed/*
+bi_dashboard/data/powerbi_export/*
+!bi_dashboard/data/raw/.gitkeep
+!bi_dashboard/data/processed/.gitkeep
+!bi_dashboard/data/powerbi_export/.gitkeep
+# Power BI binary files
+bi_dashboard/powerbi/*.pbix
 *.csv
 *.parquet
 *.json.gz
@@ -113,9 +123,19 @@ desktop.ini
 # ============================================================
 # Project-specific
 # ============================================================
-# Predictions (lớn, sinh lại được)
+# Debug / smoke-test metric files
+results/metrics/*_debug.json
+results/metrics/*debug*.json
+
+# Predictions & checkpoints (lớn, sinh lại được)
 results/predictions/*.npy
 !results/predictions/.gitkeep
+results/llm/*/predictions.json
+results/llm/*/checkpoint.json
+results/llm/*/checkpoint.tmp
+
+# Val/test logits (lớn)
+results/models/*/*.npy
 
 # Backup files
 *.bak

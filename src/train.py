@@ -19,6 +19,7 @@ from pathlib import Path
 # datasets must be imported before torch to avoid CUDA multiprocessing segfault on Windows
 import datasets as _ds_init  # noqa: F401
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
@@ -306,7 +307,7 @@ def main():
     print("FINAL EVALUATION ON TEST SET")
     print("=" * 60)
 
-    checkpoint = torch.load(output_dir / "best_model.pt", map_location=device)
+    checkpoint = torch.load(output_dir / "best_model.pt", map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
 
     test_metrics, test_logits, test_labels = evaluate_model(model, test_loader, criterion, device)
@@ -344,9 +345,13 @@ def main():
     print(f"\nSaved results: {results_path}")
 
     # Save predictions
-    import numpy as np
     np.save(output_dir / "test_logits.npy", test_logits.numpy())
     np.save(output_dir / "test_labels.npy", test_labels.numpy())
+
+    # Save val logits (needed for proper held-out threshold tuning)
+    _, val_logits, val_labels = evaluate_model(model, val_loader, criterion, device)
+    np.save(output_dir / "val_logits.npy", val_logits.numpy())
+    np.save(output_dir / "val_labels.npy", val_labels.numpy())
 
     if use_wandb:
         import wandb

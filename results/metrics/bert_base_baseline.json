@@ -2,119 +2,119 @@
   "experiment": "bert_base_baseline",
   "model_name": "bert-base-uncased",
   "config": {
+    "data": {
+      "config": "simplified",
+      "dataset_name": "google-research-datasets/go_emotions",
+      "max_length": 128,
+      "num_workers": 0
+    },
     "experiment": {
-      "name": "bert_base_baseline",
       "description": "BERT-base-uncased fine-tuned on GoEmotions",
+      "name": "bert_base_baseline",
       "tags": [
         "bert",
         "baseline",
         "fine-tune"
       ]
     },
-    "model": {
-      "name": "bert-base-uncased",
-      "num_labels": 28,
-      "dropout": 0.1
-    },
-    "data": {
-      "dataset_name": "google-research-datasets/go_emotions",
-      "config": "simplified",
-      "max_length": 128,
-      "num_workers": 0
-    },
-    "training": {
-      "epochs": 3,
-      "batch_size": 16,
-      "eval_batch_size": 32,
-      "learning_rate": 2e-05,
-      "weight_decay": 0.01,
-      "warmup_ratio": 0.1,
-      "max_grad_norm": 1.0,
-      "seed": 42
+    "logging": {
+      "log_every_n_steps": 50,
+      "use_wandb": false,
+      "wandb_project": "goemotions-emotion-classification"
     },
     "loss": {
-      "use_pos_weight": true,
       "pos_weight_clip": [
         1.0,
         50.0
-      ]
+      ],
+      "use_pos_weight": true
     },
-    "logging": {
-      "use_wandb": false,
-      "wandb_project": "goemotions-emotion-classification",
-      "log_every_n_steps": 50
+    "model": {
+      "dropout": 0.1,
+      "name": "bert-base-uncased",
+      "num_labels": 28
     },
     "paths": {
-      "output_dir": "results/models/bert_base",
+      "output_dir": "results\\models\\bert_base\\seed_456",
       "results_dir": "results/metrics"
+    },
+    "training": {
+      "batch_size": 16,
+      "epochs": 3,
+      "eval_batch_size": 32,
+      "learning_rate": 2e-05,
+      "max_grad_norm": 1.0,
+      "seed": 456,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01
     }
   },
   "history": [
     {
       "epoch": 1,
-      "train_loss": 0.700927813404961,
-      "f1_macro": 0.40115240487287857,
-      "f1_micro": 0.4150430800279438,
-      "f1_weighted": 0.5010317286433689,
-      "hamming_loss": 0.09920488652519614,
-      "loss": 0.4966460101744708
+      "train_loss": 0.7020144895619562,
+      "f1_macro": 0.38955585967987955,
+      "f1_micro": 0.4122448979591837,
+      "f1_weighted": 0.49949252155141943,
+      "hamming_loss": 0.09857300826707388,
+      "loss": 0.5041737347841263
     },
     {
       "epoch": 2,
-      "train_loss": 0.44186917772034817,
-      "f1_macro": 0.41369472835953935,
-      "f1_micro": 0.44586948321388153,
-      "f1_weighted": 0.5275977484735137,
-      "hamming_loss": 0.08702148386077616,
-      "loss": 0.4862296008011874
+      "train_loss": 0.4471500800619164,
+      "f1_macro": 0.42537334305159197,
+      "f1_micro": 0.46820342631626155,
+      "f1_weighted": 0.5277538131258225,
+      "hamming_loss": 0.0780501290084777,
+      "loss": 0.5071442649644964
     },
     {
       "epoch": 3,
-      "train_loss": 0.3407845715377905,
-      "f1_macro": 0.4304927031219895,
-      "f1_micro": 0.47165100549275957,
-      "f1_weighted": 0.535931687093682,
-      "hamming_loss": 0.07660865673213628,
-      "loss": 0.5098332661916228
+      "train_loss": 0.34366585555580403,
+      "f1_macro": 0.42710556732138066,
+      "f1_micro": 0.47153656981510156,
+      "f1_weighted": 0.5333358320146767,
+      "hamming_loss": 0.0763782844505292,
+      "loss": 0.5085431615219397
     }
   ],
   "test_metrics": {
-    "f1_macro": 0.41593926188744756,
-    "f1_micro": 0.46495633681733856,
-    "f1_weighted": 0.5328854937154334,
-    "hamming_loss": 0.07781857906236016,
-    "loss": 0.5259849776239957
+    "f1_macro": 0.4142187004011396,
+    "f1_micro": 0.4678607146104191,
+    "f1_weighted": 0.5329021108307994,
+    "hamming_loss": 0.07703545763247256,
+    "loss": 0.5232425308402847
   },
   "test_per_class_f1": {
-    "admiration": 0.6269503546099291,
-    "amusement": 0.8032258064516129,
-    "anger": 0.4120603015075377,
-    "annoyance": 0.32618583495776476,
-    "approval": 0.32438878950506855,
-    "caring": 0.33811802232854865,
-    "confusion": 0.3062857142857143,
-    "curiosity": 0.5394871794871795,
-    "desire": 0.4036697247706422,
-    "disappointment": 0.21961620469083157,
-    "disapproval": 0.3267687819110139,
-    "disgust": 0.33175355450236965,
-    "embarrassment": 0.25668449197860965,
-    "excitement": 0.275,
-    "fear": 0.5073529411764706,
-    "gratitude": 0.8361858190709046,
+    "admiration": 0.6134800550206327,
+    "amusement": 0.778125,
+    "anger": 0.3744186046511628,
+    "annoyance": 0.32831916285153695,
+    "approval": 0.3362944162436548,
+    "caring": 0.3292307692307692,
+    "confusion": 0.31529411764705884,
+    "curiosity": 0.5327951564076691,
+    "desire": 0.38414634146341464,
+    "disappointment": 0.22981366459627328,
+    "disapproval": 0.3485943775100402,
+    "disgust": 0.3289036544850498,
+    "embarrassment": 0.2987012987012987,
+    "excitement": 0.29136690647482016,
+    "fear": 0.5263157894736842,
+    "gratitude": 0.8426270136307311,
     "grief": 0.2222222222222222,
-    "joy": 0.371900826446281,
-    "love": 0.7495798319327731,
-    "nervousness": 0.2459016393442623,
-    "optimism": 0.3868312757201646,
-    "pride": 0.3333333333333333,
-    "realization": 0.18976545842217485,
-    "relief": 0.1927710843373494,
-    "remorse": 0.5578947368421052,
-    "sadness": 0.40797546012269936,
-    "surprise": 0.4722792607802875,
-    "neutral": 0.6821106821106822
+    "joy": 0.36885245901639346,
+    "love": 0.746218487394958,
+    "nervousness": 0.23076923076923078,
+    "optimism": 0.3732303732303732,
+    "pride": 0.32,
+    "realization": 0.18828932261768083,
+    "relief": 0.17777777777777778,
+    "remorse": 0.5608465608465608,
+    "sadness": 0.40816326530612246,
+    "surprise": 0.4541832669322709,
+    "neutral": 0.6891443167305237
   },
-  "best_val_f1_macro": 0.4304927031219895,
-  "total_training_time_seconds": 2228.621421098709
+  "best_val_f1_macro": 0.42710556732138066,
+  "total_training_time_seconds": 2165.715762615204
 }

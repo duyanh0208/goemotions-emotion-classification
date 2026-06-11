@@ -143,26 +143,27 @@ def create_dataloaders(
     val_ds = GoEmotionsDataset(ds["validation"], tokenizer, max_length)
     test_ds = GoEmotionsDataset(ds["test"], tokenizer, max_length)
 
+    _pin = torch.cuda.is_available()
     train_loader = DataLoader(
         train_ds,
         batch_size=train_batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=_pin,
     )
     val_loader = DataLoader(
         val_ds,
         batch_size=eval_batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=_pin,
     )
     test_loader = DataLoader(
         test_ds,
         batch_size=eval_batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=_pin,
     )
 
     return train_loader, val_loader, test_loader

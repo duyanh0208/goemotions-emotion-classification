@@ -1,0 +1,29 @@
+# ============================================================
+# Qwen2.5 3B Few-shot Configuration (k=5 examples)
+# ============================================================
+
+experiment:
+  name: "qwen_fewshot"
+  description: "Qwen2.5 3B Instruct few-shot (k=5) on GoEmotions test"
+  tags: ["llm", "qwen", "few-shot", "offline"]
+
+model:
+  name: "Qwen/Qwen2.5-3B-Instruct"
+  # local_path: "models/Qwen2.5-3B-Instruct"
+  local_files_only: false
+  max_new_tokens: 128
+  device: "auto"
+  load_in_4bit: false
+
+inference:
+  n_samples: 2000
+  split: "test"
+  seed: 42
+  save_every_n: 50
+
+prompt:
+  type: "few_shot"
+
+paths:
+  output_dir: "results/llm/qwen_fewshot"
+  results_dir: "results/metrics"

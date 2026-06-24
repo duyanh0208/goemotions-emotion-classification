@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/pytorch-2.0+-red.svg" />
   <img src="https://img.shields.io/badge/transformers-4.30+-yellow.svg" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg" />
-  <img src="https://img.shields.io/badge/status-in--progress-orange.svg" />
+  <img src="https://img.shields.io/badge/status-completed-brightgreen.svg" />
 </p>
 
 > Course project — **Natural Language Processing**
@@ -36,7 +36,10 @@ Project này so sánh hai phương pháp tiếp cận **multi-label emotion clas
 | Phương pháp | Mô hình | Kỹ thuật |
 |-------------|---------|----------|
 | **Fine-tuning** | BERT-base, RoBERTa-base | Supervised learning trên 43K training samples |
-| **In-context Learning** | Gemini 2.0 Flash | Zero-shot và Few-shot prompting (5 examples) |
+| **In-context Learning** | Llama 3.2 3B, Qwen2.5 3B (mã nguồn mở, chạy local) | Zero-shot và Few-shot prompting (k=5) |
+| **LLM Ensemble** | Llama + Qwen (voting) | Mô phỏng hệ đoạt giải PAI tại SemEval-2025 Task 11 |
+
+> **Phạm vi:** so sánh fine-tuned encoder vs **LLM mã nguồn mở chạy local**. LLM API thương mại (Gemini, GPT…) nằm ngoài phạm vi (mô hình đóng, tính phí theo lượt gọi, không kiểm soát được cấu hình).
 
 **Dataset:** 58K Reddit comments được gán nhãn với 27 emotions + neutral, đặc trưng bởi:
 - Multi-label (17% samples có ≥2 emotions)
@@ -66,12 +69,12 @@ Project này so sánh hai phương pháp tiếp cận **multi-label emotion clas
             ▼                                ▼
     ┌──────────────────┐            ┌────────────────────┐
     │  Track A: BERT   │            │  Track B: LLM      │
-    │  Fine-tuning     │            │  In-context        │
+    │  Fine-tuning     │            │  local (open-src)  │
     ├──────────────────┤            ├────────────────────┤
-    │ • BERT-base      │            │ • Gemini Flash     │
-    │ • RoBERTa-base   │            │ • Zero-shot        │
-    │ • BCEWithLogits  │            │ • Few-shot (k=5)   │
-    │   + pos_weight   │            │ • JSON output mode │
+    │ • BERT-base      │            │ • Llama 3.2 3B     │
+    │ • RoBERTa-base   │            │ • Qwen2.5 3B       │
+    │ • BCEWithLogits  │            │ • Zero/Few-shot    │
+    │   + pos_weight   │            │ • Ensemble (vote)  │
     │ • 3 epochs       │            │                    │
     └──────────────────┘            └────────────────────┘
             │                                │
@@ -92,14 +95,25 @@ Project này so sánh hai phương pháp tiếp cận **multi-label emotion clas
 
 ## 📊 Kết quả chính
 
-> **🚧 Đang cập nhật** — Kết quả sẽ được điền sau khi hoàn thành các experiments.
+> ✅ **Hoàn tất** — tất cả LLM đánh giá trên **full test 5,427 mẫu** (cùng tập với BERT, so sánh công bằng).
 
 | Model | Method | F1-macro | F1-micro | Hamming Loss |
 |-------|--------|----------|----------|--------------|
-| BERT-base | Fine-tune | TBD | TBD | TBD |
-| RoBERTa-base | Fine-tune | TBD | TBD | TBD |
-| Gemini Flash | Zero-shot | TBD | TBD | TBD |
-| Gemini Flash | Few-shot (k=5) | TBD | TBD | TBD |
+| **BERT-base** | Fine-tune, **t=0.9 (tuned)** | **0.5167** | 0.5278 | — |
+| BERT-base | Fine-tune, t=0.5 | 0.4148 ±0.0008 (3 seeds) | 0.4660 | 0.0778 |
+| RoBERTa-base | Fine-tune, t=0.5 | 0.4111 | 0.4618 | 0.0795 |
+| LLM Ensemble | majority ≥2 (EXP-07) | 0.2657 | 0.2848 | 0.0938 |
+| Qwen2.5 3B | Few-shot (k=5) | 0.2466 | 0.2900 | 0.0710 |
+| Llama 3.2 3B | Few-shot (k=5) | 0.2382 | 0.2432 | 0.1085 |
+| Qwen2.5 3B | Zero-shot | 0.2364 | 0.2703 | 0.0713 |
+| Llama 3.2 3B | Zero-shot | 0.2133 | 0.2329 | 0.1047 |
+
+**Phát hiện chính:**
+- **Fine-tuned BERT vượt mọi LLM mã nguồn mở** (zero/few-shot, kể cả ensemble) — RQ1 confirmed mạnh (~1.7–2×).
+- **Threshold tuning** (t=0.5→0.9, không tốn compute) đưa BERT lên **0.5167**, vượt paper baseline (0.46).
+- **Ensemble LLM** nâng F1-macro +7.7% (đúng hướng PAI) nhưng vẫn chưa đuổi kịp BERT → fine-tuning mới là chìa khoá lên SOTA.
+- **Kiểm chứng chéo (EXP-08):** chạy chính pipeline trên dữ liệu **SemEval-2025 Task 11 (BRIGHTER English, 5 lớp)**, BERT-base đạt **F1-macro 0.7069 ≈ baseline chính thức 0.708** → xác nhận pipeline đúng chuẩn; điểm GoEmotions thấp chỉ vì **28 lớp khó hơn**. LLM off-the-shelf đạt 84% của BERT ở 5 lớp (vs 59% ở 28 lớp).
+- **LoRA fine-tune (EXP-09):** fine-tune chính **Qwen2.5-3B** đạt **0.4519 (GoEmotions) / 0.7522 (BRIGHTER)** — cùng model nhảy +0.21/+0.29 so với prompt, **vượt BERT-base ở cả hai dataset** → chứng minh tự thân *fine-tuning mới là chìa khoá*.
 
 **Baseline để so sánh:** Paper gốc Demszky et al. (2020) báo cáo BERT-base F1-macro = **0.46**.
 
@@ -130,14 +144,17 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 ```
 
-### Setup API keys
+### Setup (không cần API key cho LLM track)
+
+LLM track chạy **local qua HuggingFace** (Llama/Qwen) nên **không cần API key**. Chỉ cần đăng nhập HuggingFace để tải model (nếu repo gated) và (tuỳ chọn) W&B để log training:
 
 ```bash
-# Tạo file .env (không commit lên Git!)
+# (tuỳ chọn) Tạo file .env cho W&B logging
 cp .env.example .env
-# Mở .env và điền:
-# GEMINI_API_KEY=your_key_here  (lấy từ https://aistudio.google.com/apikey)
 # WANDB_API_KEY=your_key_here   (lấy từ https://wandb.ai/authorize)
+
+# (nếu cần) đăng nhập HuggingFace để tải Llama/Qwen
+huggingface-cli login
 ```
 
 ---
@@ -168,14 +185,19 @@ python -m src.train --config configs/bert_base.yaml
 python -m src.train --config configs/roberta_base.yaml
 ```
 
-### 4. Chạy LLM inference
+### 4. Chạy LLM inference (local, full 5,427 test)
 
 ```bash
 # Zero-shot
-python -m src.llm_inference --config configs/gemini_zeroshot.yaml --n_samples 2000
+python -m src.llm_inference --config configs/qwen_zeroshot.yaml
+python -m src.llm_inference --config configs/llama_zeroshot.yaml
 
-# Few-shot
-python -m src.llm_inference --config configs/gemini_fewshot.yaml --n_samples 2000
+# Few-shot (k=5)
+python -m src.llm_inference --config configs/qwen_fewshot.yaml
+python -m src.llm_inference --config configs/llama_fewshot.yaml
+
+# LLM Ensemble (EXP-07) — ghép predictions Llama+Qwen bằng voting
+python -m scripts.ensemble_llm
 ```
 
 ### 5. Phân tích kết quả
@@ -184,8 +206,8 @@ python -m src.llm_inference --config configs/gemini_fewshot.yaml --n_samples 200
 # Tổng hợp metrics, vẽ plots
 python scripts/compare_results.py
 
-# Error analysis chi tiết
-jupyter notebook notebooks/03_error_analysis.ipynb
+# Error analysis BERT vs LLM (full 5,427)
+python scripts/error_analysis.py --llm results/llm/qwen_zeroshot/predictions.json
 ```
 
 ---
@@ -206,21 +228,23 @@ goemotions-emotion-classification/
 │   ├── models.py                # EmotionClassifier (BERT/RoBERTa)
 │   ├── train.py                 # Training loop
 │   ├── evaluate.py              # Evaluation metrics
-│   ├── llm_inference.py         # Gemini API client
-│   ├── prompts.py               # Prompt templates
+│   ├── llm_inference.py         # LLM inference (Llama/Qwen local; Gemini client out-of-scope)
+│   ├── prompts.py               # Prompt templates (zero/few-shot)
 │   └── utils.py                 # Helpers (seed, logging, etc.)
 │
 ├── configs/                     # YAML configs cho experiments
 │   ├── bert_base.yaml
-│   ├── bert_base_debug.yaml
 │   ├── roberta_base.yaml
-│   ├── gemini_zeroshot.yaml
-│   └── gemini_fewshot.yaml
+│   ├── llama_zeroshot.yaml      # + llama_fewshot.yaml
+│   └── qwen_zeroshot.yaml       # + qwen_fewshot.yaml
 │
 ├── scripts/                     # Standalone scripts
-│   ├── run_eda.py
-│   ├── compare_results.py
-│   └── generate_report_plots.py
+│   ├── run_eda.py               # EDA
+│   ├── run_multiseed.py         # BERT multi-seed
+│   ├── tune_threshold.py        # Threshold tuning
+│   ├── ensemble_llm.py          # EXP-07 LLM ensemble
+│   ├── error_analysis.py        # BERT vs LLM disagreement
+│   └── compare_results.py       # Tổng hợp + plots
 │
 ├── notebooks/                   # Jupyter notebooks (exploration, analysis)
 │   ├── 01_eda.ipynb
@@ -258,28 +282,29 @@ goemotions-emotion-classification/
 
 Xem chi tiết tại [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
-### Milestone 1: Foundation (Week 1) — ✅ In Progress
+### Milestone 1: Foundation — ✅ Done
 - [x] EDA & dataset analysis
 - [x] Repo structure setup
-- [ ] BERT baseline training script
-- [ ] Evaluation pipeline
+- [x] BERT baseline training script
+- [x] Evaluation pipeline
 
-### Milestone 2: Experiments (Week 2)
-- [ ] BERT-base full training
-- [ ] RoBERTa-base comparison
-- [ ] Gemini zero-shot inference
-- [ ] Gemini few-shot inference
+### Milestone 2: Experiments — ✅ Done
+- [x] BERT-base full training (+ multi-seed, threshold tuning)
+- [x] RoBERTa-base comparison
+- [x] Llama/Qwen zero-shot inference (full 5,427)
+- [x] Llama/Qwen few-shot inference (k=5)
+- [x] LLM Ensemble (EXP-07, mô phỏng PAI)
 
-### Milestone 3: Analysis & Writeup (Week 3)
-- [ ] Error analysis
-- [ ] Disagreement analysis (BERT vs LLM)
-- [ ] Final report (8-10 trang tiếng Việt)
-- [ ] Presentation slides
+### Milestone 3: Analysis & Writeup — ✅ Done
+- [x] Error analysis (BERT vs LLM, full 5,427)
+- [x] Disagreement analysis
+- [x] So sánh & định vị với SemEval-2025 Task 11
+- [x] Final report (tiếng Việt) + slides
 
-### Milestone 4: Polish & Submit (Week 4)
-- [ ] Code review & refactoring
-- [ ] Documentation polish
-- [ ] Final submission
+### Milestone 4: Polish & Submit — ✅ Done
+- [x] Code review & refactoring
+- [x] Documentation polish
+- [x] Final submission
 
 ---
 
@@ -295,12 +320,15 @@ Xem chi tiết tại [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
 4. **Brown, T. et al. (2020).** *Language Models are Few-Shot Learners.* NeurIPS 2020. [[paper](https://arxiv.org/abs/2005.14165)]
 
+5. **Muhammad, S. H. et al. (2025).** *SemEval-2025 Task 11: Bridging the Gap in Text-Based Emotion Detection.* [[paper](https://arxiv.org/abs/2503.07269)]
+
+6. **Ruan, Z. et al. (2025).** *PAI at SemEval-2025 Task 11: A Large Language Model Ensemble Strategy.* [[paper](https://aclanthology.org/2025.semeval-1.150/)]
+
 ### Tools & Libraries
 
-- [HuggingFace Transformers](https://huggingface.co/transformers/)
+- [HuggingFace Transformers](https://huggingface.co/transformers/) — Llama 3.2, Qwen2.5
 - [PyTorch](https://pytorch.org/)
 - [Weights & Biases](https://wandb.ai/)
-- [Google Gemini API](https://ai.google.dev/)
 
 ---
 

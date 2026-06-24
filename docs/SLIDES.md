@@ -5,371 +5,375 @@ paginate: true
 style: |
   section {
     font-family: 'Segoe UI', sans-serif;
-    font-size: 22px;
+    font-size: 23px;
   }
-  h1 { color: #1a5276; font-size: 36px; }
-  h2 { color: #1a5276; font-size: 28px; }
-  table { font-size: 18px; }
-  .highlight { background: #fef9e7; padding: 8px 12px; border-left: 4px solid #f39c12; }
+  h1 { color: #1a5276; }
+  h2 { color: #1a5276; font-size: 30px; }
+  table { font-size: 19px; margin: 0 auto; }
+  th { background: #eaf2f8; }
+  .highlight { background: #fef9e7; padding: 8px 14px; border-left: 5px solid #f39c12; }
   .good { color: #27ae60; font-weight: bold; }
-  .bad { color: #e74c3c; font-weight: bold; }
+  .bad  { color: #e74c3c; font-weight: bold; }
+  .small { font-size: 17px; color: #555; }
+  section.lead { text-align: center; }
+  section.lead h1 { font-size: 40px; }
 ---
 
-<!-- Slide 1: Title -->
-# Phân Tích Cảm Xúc Đa Nhãn
-## So Sánh Fine-tuned BERT và LLM trên GoEmotions
+<!-- _class: lead -->
+
+# Phân Tích Cảm Xúc Đa Nhãn trên GoEmotions
+
+## Fine-tuning vs LLM — và đối chiếu với SemEval-2025 Task 11
 
 **Bùi Đào Duy Anh**
-Xử Lý Ngôn Ngữ Tự Nhiên — Tháng 6/2026
+Xử Lý Ngôn Ngữ Tự Nhiên · Master CS, VJU-VNU · Tháng 6/2026
 
 ---
 
-<!-- Slide 2: Motivation -->
-## Tại sao bài toán này quan trọng?
+## 1 · Bối cảnh & động lực
 
-**Emotion classification** có nhiều ứng dụng thực tế:
-- Phân tích phản hồi khách hàng
-- Giám sát sức khỏe tâm thần
-- Kiểm duyệt nội dung / AI hội thoại
+**Emotion classification** — ứng dụng: phản hồi khách hàng, sức khỏe tâm thần, kiểm duyệt nội dung, AI hội thoại.
 
-**Câu hỏi thực tiễn năm 2024–2026:**
-> Doanh nghiệp nên đầu tư **fine-tune** model nhỏ,
-> hay dùng **LLM zero/few-shot** (local hoặc API) cho đủ?
+**Câu hỏi thực tiễn (2024–2026):**
+
+<div class="highlight">
+Nên đầu tư <strong>fine-tune một model nhỏ</strong>, hay chỉ cần <strong>prompt một LLM lớn</strong> (zero/few-shot) là đủ?
+</div>
+
+<br>
+
+Báo cáo trả lời câu hỏi này bằng thực nghiệm có hệ thống trên **2 dataset** và đối chiếu với **hệ đoạt giải quốc tế**.
 
 ---
 
-<!-- Slide 3: Dataset -->
-## Tập dữ liệu GoEmotions
+## 2 · Dataset: GoEmotions
 
 | | |
 |--|--|
 | **Nguồn** | Reddit comments (2005–2019) |
-| **Quy mô** | 58,009 samples |
-| **Phân chia** | 43K train / 5.4K val / 5.4K test |
-| **Nhãn** | **28 classes** (27 emotions + neutral) |
-| **Định dạng** | **Multi-label** — 1 text có thể có ≥1 emotions |
-| **Paper baseline** | BERT fine-tune: F1-macro = **0.46** |
+| **Quy mô** | 58,009 mẫu — 43K train / 5.4K val / **5,427 test** |
+| **Nhãn** | **28 lớp** (27 emotions + neutral), **multi-label** |
+| **Baseline (paper gốc)** | BERT fine-tune: F1-macro = **0.46** |
 
-**Thách thức chính:**
-- 28 classes thay vì 6-7 emotions Ekman truyền thống
-- Mất cân bằng nghiêm trọng (neutral ~47%, grief ~0.7%)
-- Overlap giữa các classes (sadness ↔ grief, curiosity ↔ confusion)
+**Vì sao khó:**
+- 28 lớp chi tiết (so với 6–7 emotion Ekman truyền thống)
+- Mất cân bằng nặng (neutral ~47% · grief ~0.7%)
+- Overlap: sadness↔grief, curiosity↔confusion
 
 ---
 
-<!-- Slide 4: Methodology overview -->
-## Thiết Kế Thực Nghiệm (7 Experiments)
+## 3 · Câu hỏi nghiên cứu
 
-```
-GoEmotions Test Set (5,427 samples)
-         │
-    ┌────┴────────────┐
-    │                 │
-Track A            Track B
-Fine-tune          LLM Inference
-(full 5K set)      (2K subset)
-    │                 │
- BERT-base         Zero-shot:  Qwen2.5 3B · Llama 3.2 3B · Gemini 2.0 Flash (API)
- RoBERTa-base      Few-shot:   Qwen2.5 3B · Llama 3.2 3B (k=5)
-```
+| # | Câu hỏi |
+|---|---------|
+| **RQ1** | Fine-tuned BERT có vượt LLM zero/few-shot không? |
+| **RQ2** | BERT vs RoBERTa trong cùng điều kiện? |
+| **RQ3** | LLM có lợi thế ở các cảm xúc hiếm không? |
+| **RQ4** | Trade-off chi phí huấn luyện ↔ hiệu năng? |
 
-**Thêm:** Threshold tuning + Multi-seed analysis (Track A)
-
-**Metric chính:** F1-macro (fair với imbalanced — không trọng số theo class)
+<div class="highlight">
+Mở rộng (theo góp ý GVHD): đối chiếu với <strong>SemEval-2025 Task 11</strong> — chạy chính pipeline của mình trên <strong>dữ liệu của bài báo</strong> để so sánh trực tiếp.
+</div>
 
 ---
 
-<!-- Slide 5: Track A — Fine-tuning -->
-## Track A: Fine-tuning
+## 4 · Thiết kế thực nghiệm — 9 experiments, 3 paradigm
+
+```
+                 GoEmotions (28 lớp, test 5,427)
+                              │
+        ┌─────────────────────┼─────────────────────┐
+   Encoder fine-tune      LLM prompt-only       LLM fine-tune
+   (EXP-01,02)            (EXP-03→06)           (EXP-09)
+   BERT · RoBERTa         zero/few-shot          Qwen-3B + LoRA
+                          + Ensemble (EXP-07)
+                              │
+              EXP-08: kiểm chứng chéo trên dữ liệu SemEval (BRIGHTER)
+```
+
+- **Metric chính:** F1-macro (công bằng với dữ liệu mất cân bằng)
+- LLM chạy **local, mã nguồn mở** (Llama 3.2 3B · Qwen2.5 3B); LLM API thương mại ngoài phạm vi
+- Bổ sung: threshold tuning · multi-seed · error analysis
+
+---
+
+## 5 · Track A — Fine-tuning encoder
 
 **Kiến trúc:**
 ```
-Input → Tokenizer → BERT Encoder → [CLS] → Dropout(0.1) → Linear(768→28) → Sigmoid
+Input → Tokenizer → BERT/RoBERTa → [CLS] → Dropout → Linear(→28) → Sigmoid
 ```
 
-**Xử lý class imbalance:**
-$$\text{pos\_weight}[c] = \frac{N_{\text{negative}}^c}{N_{\text{positive}}^c} \quad \text{(clip } [1, 50]\text{)}$$
+**Xử lý mất cân bằng:** `BCEWithLogitsLoss` + `pos_weight = N_neg / N_pos` (clip [1, 50])
 
-**Hyperparameters:**
-- lr = 2e-5, batch = 16, epochs = 3, AdamW + linear warmup
+**Hyperparameters:** lr 2e-5 · batch 16 · 3 epochs · AdamW + linear warmup
 
-**Hardware:** RTX 2000 Ada 16GB · ~37–38 phút/model
+<span class="small">Hardware: RTX 2000 Ada 16GB · ~37 phút/model</span>
 
 ---
 
-<!-- Slide 6: Track B — LLM -->
-## Track B: LLM Inference
-
-Chạy **local trên GPU** (Llama/Qwen, không cần API) hoặc **Google API** (Gemini).
+## 6 · Track B — LLM (prompting)
 
 **Zero-shot prompt:**
 ```
-You are an expert emotion analyst. Identify ALL emotions:
-
-RULES: Multi-label. Use only the 28 labels below.
-If no emotion: use ["neutral"]. Output ONLY JSON.
-
-OUTPUT: {"emotions": ["emotion1", "emotion2"]}
+You are an expert emotion analyst. Identify ALL emotions.
+RULES: multi-label; chỉ dùng 28 nhãn; nếu không có → ["neutral"];
+output CHỈ JSON: {"emotions": [...]}
 TEXT: "{input}"
 ```
 
-**Few-shot (k=5):** Thêm 5 examples từ training set trước `TEXT`
-
-**Response parsing:** JSON → regex fallback → `["neutral"]`
-
----
-
-<!-- Slide 7: Main results table -->
-## Kết Quả Tổng Hợp — 7 Experiments
-
-| Model | Phương pháp | **F1-macro** | F1-micro | Eval |
-|-------|-------------|------------|---------|------|
-| **BERT-base** | Fine-tune, **t=0.9†** | **0.5167** ← BEST | 0.5278 | Full 5K |
-| RoBERTa-base | Fine-tune, t=0.9† | 0.5136 | 0.5275 | Full 5K |
-| BERT-base | Fine-tune, t=0.5 | 0.4148 ±0.0008‡ | 0.4660 | Full 5K |
-| RoBERTa-base | Fine-tune, t=0.5 | 0.4111 | 0.4618 | Full 5K |
-| Qwen2.5 3B | Few-shot (k=5) | 0.2411 | 0.2920 | 2K |
-| Llama 3.2 3B | Few-shot (k=5) | 0.2364 | 0.2379 | 2K |
-| Qwen2.5 3B | Zero-shot | 0.2219 | 0.2717 | 2K |
-| Llama 3.2 3B | Zero-shot | 0.2126 | 0.2306 | 2K |
-| **Gemini 2.0 Flash** | **Zero-shot (API)** | **0.0456** ← WORST | 0.3032 | 2K |
-| *Paper baseline* | *BERT FT* | *0.46* | — | — |
-
-> † tuned trên test set (upper bound) · ‡ mean ±std qua 3 seeds
+- **Few-shot (k=5):** thêm 5 ví dụ từ train trước câu cần phân loại
+- **Parsing:** JSON → regex fallback → `["neutral"]`
+- Greedy decoding (deterministic), full test 5,427 — **cùng tập với BERT**
 
 ---
 
-<!-- Slide 8: Key finding 1 — Threshold tuning -->
-## Phát Hiện Quan Trọng #1: Threshold Tuning
+## 7 · KẾT QUẢ CHÍNH — GoEmotions (28 lớp)
 
-**Threshold mặc định 0.5 không phải tối ưu** với pos_weight training.
+| Mô hình | Phương pháp | **F1-macro** | F1-micro |
+|---|---|---|---|
+| **BERT-base** | Fine-tune, **t=0.9**† | **0.5167** | 0.5278 |
+| RoBERTa-base | Fine-tune, t=0.9† | 0.5136 | 0.5275 |
+| BERT-base | Fine-tune, t=0.5 | 0.4148 ±0.0008‡ | 0.4660 |
+| **Qwen-3B** | **LoRA fine-tune** | **0.4519** | 0.5928 |
+| RoBERTa-base | Fine-tune, t=0.5 | 0.4111 | 0.4618 |
+| LLM Ensemble | majority ≥2 | 0.2657 | 0.2848 |
+| Qwen-3B | few-shot | 0.2466 | 0.2900 |
+| Qwen-3B | zero-shot | 0.2364 | 0.2703 |
+| Llama-3B | few / zero | 0.2382 / 0.2133 | — |
+| *Paper baseline* | *BERT* | *0.46* | — |
 
-| Model | t=0.5 | t=0.9† | Cải thiện |
-|-------|-------|--------|-----------|
-| BERT-base | 0.4148 | **0.5167** | **+0.1019 (+24.6%)** |
-| RoBERTa-base | 0.4111 | **0.5136** | **+0.1025 (+24.9%)** |
+<span class="small">† tuned trên test (upper bound) · ‡ mean±std qua 3 seeds · tất cả trên full 5,427</span>
 
-**Per-class cải thiện mạnh nhất (BERT, t=0.5 → t=0.9):**
+---
 
-| Emotion | t=0.5 | t=0.9 | Delta |
-|---------|-------|-------|-------|
-| relief | 0.193 | **0.400** | +0.207 |
-| embarrassment | 0.257 | **0.447** | +0.190 |
-| grief | 0.222 | **0.400** | +0.178 |
-| gratitude | 0.836 | **0.911** | +0.075 |
+## 8 · Phát hiện #1 (RQ1): Fine-tuned ≫ LLM prompt-only
 
 <div class="highlight">
-Cả BERT và RoBERTa với t=0.9 đều <strong>vượt paper baseline (0.46)</strong> mà không cần train lại.
+BERT fine-tune <strong>0.4148</strong> vs LLM prompt tốt nhất (Qwen FS) <strong>0.2466</strong> → BERT hơn <strong>1.68×</strong>. Với t=0.9 thì ~2.1×.
 </div>
-
----
-
-<!-- Slide 9: Key finding 2 — Few-shot LLM -->
-## Phát Hiện Quan Trọng #2: Few-shot vs Zero-shot
-
-Few-shot (k=5) cải thiện cả hai local LLM nhưng không đủ để cạnh tranh với BERT.
-
-| Model | Zero-shot | Few-shot | Δ F1-macro |
-|-------|-----------|----------|------------|
-| Qwen2.5 3B | 0.2219 | **0.2411** | +0.0192 (**+8.6%**) |
-| Llama 3.2 3B | 0.2126 | **0.2364** | +0.0238 (**+11.2%**) |
-
-**Profile lỗi khác nhau (few-shot):**
-
-| | Llama | Qwen |
-|--|-------|------|
-| Classes F1=0.000 | **0 class** ✓ | 4 classes (grief, pride, relief, remorse) |
-| Hamming Loss | 0.1105 (aggressive) | **0.0708** (conservative) |
-
-<div class="highlight">
-BERT (t=0.5) = 0.4148 vs Qwen few-shot = 0.2411 → BERT vẫn tốt hơn <strong>1.72×</strong>
-</div>
-
----
-
-<!-- Slide 10: Key finding 3 — Gemini surprise -->
-## Phát Hiện Quan Trọng #3: Gemini — Bất Ngờ Lớn
-
-**Gemini 2.0 Flash (API, zero-shot): F1-macro = 0.0456** — tệ nhất trong tất cả experiments.
-
-| | Gemini | Qwen 3B | Llama 3B |
-|--|--------|---------|----------|
-| F1-macro | **0.0456** | 0.2219 | 0.2126 |
-| F1-micro | 0.3032 | 0.2717 | 0.2306 |
-| Classes F1=0 | **>10 classes** | 3 classes | 2 classes |
-
-**Tại sao F1-macro thấp nhưng F1-micro vẫn 0.30?**
-- Gemini predict `neutral` rất tốt (F1=0.492) → kéo F1-micro lên
-- Nhưng bỏ hoàn toàn: joy, sadness, fear, grief, caring... (=0.000)
-- F1-macro tính bình đẳng 28 classes → 10+ classes = 0 kéo xuống thảm
-
-<div class="highlight">
-<strong>Bài học:</strong> Model lớn + API ≠ tự động tốt hơn. Prompt engineering quan trọng không kém quy mô model.
-</div>
-
----
-
-<!-- Slide 11: Per-class F1 — BERT vs LLMs -->
-## Per-class F1: Ai Mạnh Ở Đâu?
-
-| Emotion | BERT | Qwen ZS | Llama FS | Gemini |
-|---------|------|---------|----------|--------|
-| gratitude | **0.836** | 0.692 | 0.693 | 0.041 |
-| amusement | **0.803** | 0.429 | 0.441 | 0.102 |
-| neutral | **0.682** | 0.266 | 0.279 | 0.492 |
-| fear | **0.507** | 0.440 | 0.255 | 0.000 |
-| grief | **0.222** | 0.000 | 0.154 | 0.000 |
-| caring | **0.338** | 0.000 | 0.186 | 0.000 |
 
 <br>
 
+- Khoảng cách **lớn và ổn định** (multi-seed std ±0.0008).
+- Ensemble các LLM prompt (EXP-07) chỉ đạt 0.2657 — **vẫn thua xa**.
+- **RQ1 được xác nhận mạnh** trên GoEmotions: prompting off-the-shelf chưa đủ cho bài 28 lớp.
+
+<span class="small">→ Nhưng đây CHƯA phải toàn bộ câu chuyện (xem phần đối chiếu SemEval + LoRA).</span>
+
+---
+
+## 9 · Phát hiện #2: Threshold tuning — cải thiện "miễn phí"
+
+Ngưỡng mặc định 0.5 không tối ưu khi train với `pos_weight`.
+
+| Model | t=0.5 | t=0.9 | Cải thiện |
+|---|---|---|---|
+| BERT-base | 0.4148 | **0.5167** | **+0.10 (+24.6%)** |
+| RoBERTa-base | 0.4111 | **0.5136** | +0.10 |
+
+**Rare classes hưởng lợi nhiều nhất:** relief 0.193→**0.400** · grief 0.222→**0.400** · embarrassment 0.257→**0.447**
+
 <div class="highlight">
-RQ3 ❌ <strong>REFUTED:</strong> LLM không mạnh hơn ở rare classes — BERT wins ở tất cả 28 classes (t=0.5).<br>
-Ngoại lệ duy nhất: Gemini predict neutral tốt hơn Qwen/Llama (0.492 vs 0.266/0.279).
+Không tốn thêm compute, cả hai model <strong>vượt paper baseline 0.46</strong>. (Tuned trên test → upper bound; cần val set để chốt.)
 </div>
 
 ---
 
-<!-- Slide 12: BERT vs RoBERTa -->
-## BERT vs RoBERTa: Kết Quả Không Ngờ
+## 10 · Phát hiện #3: Few-shot & Ensemble
 
-**RoBERTa không vượt BERT** trong cùng điều kiện:
+**Few-shot (k=5) giúp nhưng chưa đủ:**
 
+| Model | zero-shot | few-shot | Δ |
+|---|---|---|---|
+| Qwen-3B | 0.2364 | 0.2466 | +4.3% |
+| Llama-3B | 0.2133 | 0.2382 | +11.7% |
+
+**Ensemble (lấy cảm hứng PAI):** majority-vote 4 prediction-set → **0.2657 (+7.7%)** so với LLM đơn.
+
+<div class="highlight">
+Cả few-shot lẫn ensemble đều cải thiện nhưng <strong>không đóng được gap với encoder</strong> — vì còn thiếu mảnh ghép <em>fine-tuning</em>.
+</div>
+
+---
+
+## 11 · Per-class & profile lỗi (RQ3)
+
+| Emotion | BERT | Qwen ZS | Llama FS |
+|---|---|---|---|
+| gratitude | **0.836** | 0.680 | 0.685 |
+| amusement | **0.803** | 0.405 | 0.456 |
+| neutral | **0.682** | 0.273 | 0.304 |
+| grief | **0.222** | 0.000 | 0.130 |
+| caring | **0.338** | 0.000 | 0.184 |
+
+- **RQ3 ❌ bác bỏ:** LLM **không** mạnh hơn ở rare classes.
+- Error analysis (full 5,427): **93.3% bất đồng** · BERT gần đúng hơn 40.6% vs LLM 5.0%.
+- Profile khác nhau: Qwen *conservative* (Hamming 0.071), Llama *aggressive* (0.108).
+
+---
+
+## 12 · BERT vs RoBERTa (RQ2) & Chi phí (RQ4)
+
+<div style="display:flex; gap:20px;">
+<div>
+
+**RQ2 — BERT ≈ RoBERTa**
 | | BERT | RoBERTa |
-|--|------|---------|
-| Val F1-macro (epoch 2) | 0.414 | **0.378** ← drop! |
-| Test F1-macro (t=0.5) | **0.4159** | 0.4111 |
-| Test F1-macro (t=0.9†) | **0.5167** | 0.5136 |
-| Multi-seed std | ±0.0008 | — (1 run) |
+|--|--|--|
+| t=0.5 | **0.4159** | 0.4111 |
+| t=0.9 | **0.5167** | 0.5136 |
+| multi-seed | ±0.0008 | 1 run |
 
-**Multi-seed BERT (3 seeds: 42, 123, 456):**
-- F1-macro = **0.4148 ± 0.0008** — rất ổn định, không phụ thuộc "lucky seed"
-- Chênh lệch BERT vs RoBERTa (0.0037) ≈ 4.7× std → cần multi-seed RoBERTa để kết luận
+<span class="small">Chênh 0.0037 ≈ 4.7× std → chưa đủ kết luận.</span>
+
+</div>
+<div>
+
+**RQ4 — Chi phí**
+| | Train | Infer |
+|--|--|--|
+| BERT | 37′ một lần | <1′ (batch) |
+| LLM prompt | — | 0.5–1.3s/mẫu |
+
+<span class="small">Fine-tune: train một lần, inference cực nhanh.</span>
+
+</div>
+</div>
 
 <div class="highlight">
-RQ2: Với limited compute (3 epochs), BERT thực tế hơn RoBERTa cho GoEmotions
+RQ4: với production scale, BERT inference &lt;10 phút; LLM prompt mất nhiều giờ + kém hơn.
 </div>
 
 ---
 
-<!-- Slide 13: Error analysis -->
-## Phân Tích Lỗi BERT vs Qwen (2,000 samples)
+<!-- _class: lead -->
 
-**93.1% samples: BERT và Qwen bất đồng**
+# Đối chiếu với SOTA quốc tế
+## SemEval-2025 Task 11 — 2 bài báo GVHD yêu cầu
 
-| Category | % |
-|----------|---|
-| BERT closer (Jaccard cao hơn) | **40.4%** |
-| Both wrong (tương đương) | 32.6% |
-| LLM wins (exact match) | 9.1% |
-| BERT wins (exact match) | 8.0% |
+---
 
-**Pattern chính:**
-- **Qwen over-predicts**: "KAMALA 2020!!!" → Qwen: [excitement], True: [neutral]
-- **LLM precise hơn khi 1 emotion rõ**: "Fuck you." → Qwen: [anger] ✓, BERT: [anger, annoyance] ✗
+## 13 · Hai bài báo & dữ liệu BRIGHTER
+
+- **Overview (Muhammad et al. 2025):** shared task lớn nhất về emotion detection (700+ đội). Dataset **BRIGHTER**, English Track A = **5 lớp**. Baseline RoBERTa = **0.708**.
+- **PAI (Ruan et al. 2025):** hệ **đoạt giải nhất** (English **0.823**) — ensemble ChatGPT-4o/Qwen-32B/… + **AdaLoRA fine-tune** + **stacking 2 vòng**.
 
 <div class="highlight">
-Hai model có <em>profile lỗi khác biệt</em> — tiềm năng ensemble để kết hợp ưu điểm
+Khác dataset (28 vs 5 lớp) → <strong>không so F1 tuyệt đối</strong>. Cách làm đúng: <strong>mang pipeline của mình sang chạy trên ĐÚNG dữ liệu của họ</strong> (BRIGHTER công khai trên HuggingFace).
 </div>
 
 ---
 
-<!-- Slide 14: Cost analysis -->
-## Trade-off Chi Phí vs Hiệu Năng
+## 14 · So sánh thế nào cho hợp lý? — 3 trục
 
-| Model | Training | Inference (2K) | F1-macro |
-|-------|----------|----------------|----------|
-| BERT (t=0.9) | 37 phút | <1 phút | **0.517** |
-| BERT (t=0.5) | 37 phút | <1 phút | 0.415 |
-| Qwen few-shot | — | ~19 phút | 0.241 |
-| Llama few-shot | — | ~41 phút | 0.236 |
-| Qwen zero-shot | — | ~16 phút | 0.222 |
-| Llama zero-shot | — | ~44 phút | 0.213 |
-| Gemini (API) | — | ~15 phút | 0.046 |
+| Trục | So cái gì | Vì sao hợp lý |
+|---|---|---|
+| **① Vị trí so baseline** | có vượt baseline của chính benchmark? | mỗi benchmark có trần riêng |
+| **② Paradigm** | fine-tune vs prompt vs stacking | độc lập dataset |
+| **③ Δ ensemble** | ensemble nâng bao nhiêu | cùng đơn vị (tương đối) |
 
-<br>
+- ① Mình: BERT 0.5167 > baseline 0.46 ✓ — PAI: 0.823 > 0.708 ✓ → **cùng chiều**.
+- ② PAI thắng nhờ **fine-tune + stacking**, *không phải* prompt thuần.
+- ③ Ensemble: PAI **+0.01–0.02** · mình **+0.019** → **trùng nhau** dù model nhỏ hơn ~10×.
+
+---
+
+## 15 · Kiểm chứng chéo (EXP-08): pipeline mình trên data của họ
+
+Chạy chính pipeline trên **đúng test set BRIGHTER English** (5,528 mẫu, 5 lớp):
+
+| Hệ thống | F1-macro |
+|---|---|
+| PAI (đoạt giải) | 0.823 |
+| *RoBERTa baseline chính thức* | *0.708* |
+| **BERT-base của mình** | **0.7069** ✓ |
+| Qwen few-shot (prompt) | 0.5966 |
+| Qwen zero-shot (prompt) | 0.4662 |
 
 <div class="highlight">
-Fine-tuning một lần → inference batch nhanh. LLM không train nhưng inference sequential + chậm + kết quả kém hơn nhiều.
+<strong>BERT mình = 0.7069 ≈ baseline 0.708</strong> → pipeline <strong>đúng chuẩn</strong>; điểm GoEmotions thấp (0.41) chỉ vì <strong>28 lớp khó hơn 5 lớp</strong>, không phải làm sai.
 </div>
 
 ---
 
-<!-- Slide 15: Conclusions -->
-## Kết Luận
+## 16 · LoRA fine-tune (EXP-09): mảnh ghép quyết định
 
-✅ **RQ1:** Fine-tuned BERT vượt LLM zero-shot **~2× (t=0.5)** hoặc **~11× (vs Gemini)**
+LoRA fine-tune **chính Qwen2.5-3B** (LLM-as-classifier, đúng ý tưởng PAI):
 
-✅ **RQ2:** BERT ≈ RoBERTa với 3 epochs — cần tune thêm để khai thác RoBERTa
+| Cùng một Qwen-3B | GoEmotions (28 lớp) | BRIGHTER (5 lớp) |
+|---|---|---|
+| zero-shot (prompt) | 0.2364 | 0.4662 |
+| few-shot (prompt) | 0.2466 | 0.5966 |
+| **LoRA fine-tune** | **0.4519** | **0.7522** |
+| so với BERT-base | 0.4148 → **vượt** | 0.7069 → **vượt** |
 
-❌ **RQ3:** LLM **không** mạnh hơn ở rare classes — BERT wins ở tất cả 28 classes
-
-✅ **RQ4:** Fine-tuning: chi phí train một lần + inference cực nhanh
-
-**3 phát hiện ngoài RQ:**
-1. **Threshold tuning** không tốn compute → tăng +0.10 F1-macro (vượt paper baseline 0.46)
-2. **Few-shot** cải thiện +8–11% nhưng chưa đủ cạnh tranh với BERT
-3. **Gemini (API) surprise:** Model lớn qua API không tự động tốt hơn local 3B — prompt engineering là key
+<div class="highlight">
+Cùng model, prompt→LoRA nhảy <strong>+0.21 / +0.29</strong>, <strong>vượt BERT ở CẢ HAI</strong> và baseline 0.708 → <strong>"LLM cần fine-tune", không phải "LLM kém"</strong>.
+</div>
 
 ---
 
-<!-- Slide 16: Limitations & Future work -->
-## Hạn Chế và Hướng Phát Triển
+## 17 · BỨC TRANH TOÀN CẢNH (paradigm × dataset)
+
+| Nhóm | Mô hình | GoEmotions (28 lớp) | BRIGHTER (5 lớp) |
+|---|---|---|---|
+| **Encoder fine-tune** | BERT (t=0.9) | **0.5167** | — |
+| | BERT (t=0.5) | 0.4148 | 0.7069 |
+| **LLM + LoRA** | Qwen-3B fine-tune | **0.4519** | **0.7522** |
+| **LLM prompt-only** | Ensemble (≥2) | 0.2657 | — |
+| | Qwen few-shot | 0.2466 | 0.5966 |
+| | Qwen zero-shot | 0.2364 | 0.4662 |
+| **Công bố** | baseline / PAI | 0.46 | 0.708 / 0.823 |
+
+<div class="highlight">
+<strong>Dọc:</strong> prompt &lt; ensemble &lt; LoRA. <strong>Ngang:</strong> gap co trên 5 lớp, giãn trên 28 lớp.
+👉 LLM+LoRA ≥ encoder ở cả hai → <strong>quyết định là fine-tuning</strong>.
+</div>
+
+---
+
+## 18 · Kết luận
+
+| RQ | Trả lời |
+|---|---|
+| **RQ1** | ✅ Fine-tuned ≫ LLM *prompt* (~1.7–2×) trên GoEmotions |
+| **RQ2** | ≈ BERT ngang RoBERTa (3 epochs) |
+| **RQ3** | ❌ LLM **không** mạnh hơn ở rare classes |
+| **RQ4** | ✅ Fine-tune: train một lần, inference cực nhanh |
+
+**Thông điệp lớn (mở rộng):** Không phải *"LLM kém hơn encoder"* mà là **"LLM cần được fine-tune"** — cùng Qwen-3B, LoRA vượt BERT ở cả 2 dataset; khớp với công thức của hệ đoạt giải PAI (fine-tune + ensemble + scale).
+
+---
+
+## 19 · Hạn chế & hướng phát triển
 
 **Hạn chế:**
-- Threshold tuning trên test set → upper bound, cần val_logits để tune properly
-- RoBERTa chỉ 1 seed, Gemini prompt chưa được tối ưu
-- LLM đánh giá trên 2K/5.4K samples (inference sequential chậm)
+- Threshold tuning trên test set → upper bound (cần val set)
+- RoBERTa mới 1 seed · phạm vi giới hạn LLM mã nguồn mở (không so API thương mại)
+- Mới fine-tune *một* LLM — chưa ensemble nhiều LLM fine-tuned như PAI
 
 **Hướng phát triển:**
 
-| Idea | Kỳ vọng |
-|------|---------|
-| Proper threshold tuning (val set) | Xác nhận t=0.9 thực tế |
-| Multi-seed RoBERTa | Kết luận BERT vs RoBERTa |
-| DeBERTa-v3-base | +2–3% F1-macro |
-| Gemini với structured output / CoT | Cải thiện F1-macro đáng kể |
-| Few-shot k=1,3,10 | Tìm k tối ưu |
-| BERT + Llama ensemble | Tận dụng profile lỗi khác nhau |
+| Ý tưởng | Kỳ vọng |
+|---|---|
+| Proper threshold tuning (val set) | chốt t=0.9 thực tế |
+| DeBERTa-v3 · multi-seed RoBERTa | +2–3% · kết luận RQ2 |
+| **Ensemble nhiều LLM LoRA + stacking** (công thức PAI) | tiến tới SOTA |
 
 ---
 
-<!-- Slide 17: Code -->
-## Code & Reproducibility
+<!-- _class: lead -->
 
-**Repository:** `goemotions-emotion-classification`
-
-```bash
-# Fine-tune BERT/RoBERTa
-python -m src.train --config configs/bert_base.yaml
-
-# LLM Zero-shot / Few-shot
-python -m src.llm_inference --config configs/qwen_zeroshot.yaml
-python -m src.llm_inference --config configs/llama_fewshot.yaml
-
-# Multi-seed + Threshold tuning
-python scripts/run_multiseed.py --config configs/bert_base.yaml
-python scripts/tune_threshold.py --model bert_base
-
-# So sánh tất cả experiments
-python scripts/compare_results.py
-```
-
-**Results:** `results/metrics/*.json` · `results/plots/` · `results/analysis/`
-
----
-
-<!-- Slide 18: Q&A -->
 # Cảm ơn đã lắng nghe!
 
-**Tóm tắt 1 câu:**
-> Fine-tuned BERT vượt tất cả LLM approaches (local và API) trên GoEmotions;
-> threshold tuning miễn phí giúp vượt paper baseline; Gemini API zero-shot
-> là bài học về tầm quan trọng của prompt engineering.
+**Tóm tắt một câu:**
+Fine-tuned encoder vượt mọi LLM *off-the-shelf* trên GoEmotions; nhưng **chính LLM đó khi LoRA fine-tune lại vượt cả encoder lẫn baseline trên dữ liệu SemEval** — yếu tố quyết định là **fine-tuning, không phải họ model**.
 
 <br>
 
+**9 experiments · 2 dataset · đối chiếu trực tiếp với hệ đoạt giải SemEval-2025**
+
 **Câu hỏi?**
 
----
-*Bùi Đào Duy Anh — NLP Course 2026*
+<span class="small">Bùi Đào Duy Anh — NLP Course 2026 · repo: goemotions-emotion-classification</span>

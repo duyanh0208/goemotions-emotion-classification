@@ -1,15 +1,16 @@
 {
-  "total_llm_samples": 2000,
-  "disagreements": 1862,
-  "disagreement_rate_pct": 93.1,
-  "bert_exact_wins": 160,
-  "llm_exact_wins": 181,
+  "total_llm_samples": 5427,
+  "disagreements": 5066,
+  "disagreement_rate_pct": 93.3,
+  "bert_exact_wins": 457,
+  "llm_exact_wins": 515,
   "categories": {
-    "bert_closer": 807,
-    "both_wrong_similar": 653,
-    "llm_closer": 102,
-    "llm_wins": 181,
-    "both_correct": 97,
-    "bert_wins": 160
+    "bert_closer": 2201,
+    "both_wrong_similar": 1735,
+    "llm_closer": 270,
+    "llm_wins": 515,
+    "both_correct": 248,
+    "bert_wins": 457,
+    "llm_only": 1
   }
 }

@@ -38,7 +38,7 @@ PLOT_OUT = PLOTS_DIR / "model_comparison.png"
 DISPLAY_MAP = {
     "bert_base_baseline": ("BERT-base", "Fine-tune", "t=0.5"),
     "roberta_base_baseline": ("RoBERTa-base", "Fine-tune", "t=0.5"),
-    "gemini_zeroshot": ("Gemini 2.0 Flash", "Zero-shot (API)", "—"),
+    # gemini_zeroshot intentionally excluded — commercial API LLM, out of comparison scope
     "llama_zeroshot": ("Llama 3.2 3B", "Zero-shot", "—"),
     "qwen_zeroshot": ("Qwen2.5 3B", "Zero-shot", "—"),
     "llama_fewshot": ("Llama 3.2 3B", "Few-shot (k=5)", "—"),

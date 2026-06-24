@@ -144,3 +144,5 @@ results/models/*/*.npy
 # Temporary files
 tmp/
 temp/
+# Backup files from Gemini v1 neutral-collapse run — not needed in repo
+results/llm/gemini_zeroshot/*_v1_neutral_collapse.json

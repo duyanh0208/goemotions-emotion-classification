@@ -1,23 +1,21 @@
 """
 ============================================================
-LLM Inference module — HuggingFace LLM on GoEmotions
+LLM Inference module — HuggingFace & Gemini on GoEmotions
 ============================================================
 
-Provides:
-    - HFInferenceClient: Load any HF text-generation model locally,
-      run inference with checkpoint resume. Supports Llama, Qwen, etc.
-    - run_inference(): Main entry-point
+Providers:
+    - HFInferenceClient   : HuggingFace local models (Llama, Qwen, …)
+    - GeminiInferenceClient: Google Gemini API (gemini-2.0-flash, …)
 
 Usage (module):
     python -m src.llm_inference --config configs/llama_zeroshot.yaml
     python -m src.llm_inference --config configs/qwen_zeroshot.yaml
-    python -m src.llm_inference --config configs/llama_fewshot.yaml
+    python -m src.llm_inference --config configs/gemini_zeroshot.yaml
 
 Features:
-    - Local inference  : no API key, no rate limits
-    - Checkpointing    : saves progress every N samples to JSON
-    - Resume support   : skips samples already in checkpoint
-    - Output           : predictions.json + metrics.json
+    - Checkpointing  : saves every N samples, resume on restart
+    - Rate limiting  : configurable RPM for Gemini free/pro tier
+    - Output         : predictions.json + metrics.json
 """
 
 import argparse
@@ -308,6 +306,242 @@ class HFInferenceClient:
 
 
 # ============================================================
+# Gemini Client
+# ============================================================
+class GeminiInferenceClient:
+    """
+    Google Gemini API inference client for GoEmotions classification.
+
+    Uses response_schema (structured output) + temperature=0.3 +
+    disabled safety thresholds to avoid neutral collapse.
+
+    Requires: GEMINI_API_KEY environment variable.
+    Package:  google-genai (pip install google-genai)
+    """
+
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.experiment_name: str = config["experiment"]["name"]
+        model_cfg = config["model"]
+        self.model_name: str = model_cfg["name"]
+        self.temperature: float = model_cfg.get("temperature", 0.3)
+        self.max_output_tokens: int = model_cfg.get("max_output_tokens", 256)
+
+        inf = config["inference"]
+        self.n_samples: int = inf.get("n_samples", 2000)
+        self.split: str = inf.get("split", "test")
+        self.seed: int = inf.get("seed", 42)
+        self.save_every_n: int = inf.get("save_every_n", 50)
+        self.rate_limit_rpm: int = inf.get("rate_limit_rpm", 15)
+        self.retry_max_attempts: int = inf.get("retry_max_attempts", 3)
+        self.retry_delay_seconds: float = inf.get("retry_delay_seconds", 5.0)
+
+        self.prompt_mode: str = config["prompt"]["type"]
+
+        paths = config["paths"]
+        self.output_dir = Path(paths["output_dir"])
+        self.results_dir = Path(paths["results_dir"])
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.results_dir.mkdir(parents=True, exist_ok=True)
+
+        self._init_client()
+
+    def _init_client(self) -> None:
+        import os
+        from google import genai
+        from google.genai import types
+
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY environment variable not set.\n"
+                "Set it with: $env:GEMINI_API_KEY='your-key'  (PowerShell)\n"
+                "         or: export GEMINI_API_KEY='your-key'  (bash)"
+            )
+
+        self._client = genai.Client(api_key=api_key)
+
+        # Pydantic schema for structured output — forces model to return
+        # {"emotions": [...]} without free-text wrapping.
+        from pydantic import BaseModel
+        from typing import List as _List
+
+        class EmotionOutput(BaseModel):
+            emotions: _List[str]
+
+        self._gen_config = types.GenerateContentConfig(
+            temperature=self.temperature,
+            max_output_tokens=self.max_output_tokens,
+            response_mime_type="application/json",
+            response_schema=EmotionOutput,
+            # Disable all safety filters — emotion words (anger, fear, disgust)
+            # trigger false positives that collapse output to ["neutral"].
+            safety_settings=[
+                types.SafetySetting(category="HARM_CATEGORY_HARASSMENT",        threshold="OFF"),
+                types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH",       threshold="OFF"),
+                types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"),
+                types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"),
+            ],
+        )
+
+        logger.info(
+            "Gemini client ready: model=%s  temp=%.1f  rpm=%d",
+            self.model_name, self.temperature, self.rate_limit_rpm,
+        )
+
+    def _call_model(self, text: str) -> str:
+        """Call Gemini API with retry on transient errors."""
+        import time
+        prompt_text = build_prompt(text, mode=self.prompt_mode)
+
+        for attempt in range(self.retry_max_attempts):
+            try:
+                response = self._client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt_text,
+                    config=self._gen_config,
+                )
+                return response.text or ""
+            except Exception as exc:
+                if attempt < self.retry_max_attempts - 1:
+                    logger.warning(
+                        "Gemini attempt %d/%d failed: %s — retry in %.0fs",
+                        attempt + 1, self.retry_max_attempts, exc, self.retry_delay_seconds,
+                    )
+                    time.sleep(self.retry_delay_seconds)
+                else:
+                    raise
+        return ""
+
+    def run(self) -> Dict[str, Any]:
+        import time
+
+        logger.info("Loading GoEmotions dataset (split=%s)…", self.split)
+        ds_full = load_goemotions()
+        split_ds = ds_full[self.split]
+
+        rng = np.random.default_rng(self.seed)
+        total = len(split_ds)
+        n = min(self.n_samples, total)
+        indices = rng.choice(total, size=n, replace=False).tolist()
+        logger.info("Sampling %d / %d examples (seed=%d)", n, total, self.seed)
+
+        checkpoint_path = self.output_dir / "checkpoint.json"
+        checkpoint = _load_checkpoint(checkpoint_path)
+        completed_ids = set(checkpoint["completed_ids"])
+        results: List[Dict[str, Any]] = checkpoint["results"]
+
+        skipped = len(completed_ids)
+        if skipped:
+            logger.info("Resuming — %d samples already done.", skipped)
+
+        # Rate limiter: minimum seconds between API calls
+        min_interval = 60.0 / self.rate_limit_rpm
+        last_call_time: float = 0.0
+
+        for idx in indices:
+            sample = split_ds[idx]
+            sample_id = sample.get("id", str(idx))
+
+            if sample_id in completed_ids:
+                continue
+
+            # Rate limiting
+            elapsed = time.time() - last_call_time
+            if elapsed < min_interval:
+                time.sleep(min_interval - elapsed)
+
+            text = sample["text"]
+            true_labels = [EMOTION_NAMES[j] for j in sample["labels"]]
+
+            raw_response = ""
+            predicted_labels: List[str] = ["neutral"]
+            try:
+                raw_response = self._call_model(text)
+                last_call_time = time.time()
+                predicted_labels = parse_response(raw_response)
+            except Exception as exc:
+                last_call_time = time.time()
+                # Quota/rate-limit exhausted: do NOT record this sample as neutral
+                # (that would corrupt results and block retry). Save progress and
+                # stop cleanly so a later run resumes from here.
+                if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+                    checkpoint["results"] = results
+                    checkpoint["completed_ids"] = list(completed_ids)
+                    _save_checkpoint(checkpoint, checkpoint_path)
+                    logger.error(
+                        "Quota exhausted at sample %s — saved %d done, stopping. "
+                        "Re-run later to resume.", sample_id, len(results),
+                    )
+                    raise SystemExit(2)
+                logger.error("Skipping sample %s: %s", sample_id, exc)
+
+            results.append({
+                "id": sample_id,
+                "text": text,
+                "true_labels": true_labels,
+                "predicted_labels": predicted_labels,
+                "raw_response": raw_response,
+            })
+            completed_ids.add(sample_id)
+
+            processed = len(results)
+            if processed % self.save_every_n == 0:
+                checkpoint["results"] = results
+                checkpoint["completed_ids"] = list(completed_ids)
+                _save_checkpoint(checkpoint, checkpoint_path)
+                logger.info(
+                    "Checkpoint saved — %d / %d  (%.1f%%)",
+                    processed, n, 100.0 * processed / n,
+                )
+
+        checkpoint["results"] = results
+        checkpoint["completed_ids"] = list(completed_ids)
+        _save_checkpoint(checkpoint, checkpoint_path)
+
+        metrics = self._compute_metrics(results)
+
+        pred_path = self.output_dir / "predictions.json"
+        metrics_path = self.output_dir / "metrics.json"
+        combined_path = self.results_dir / f"{self.experiment_name}_metrics.json"
+
+        save_json(results, pred_path)
+        save_json(metrics, metrics_path)
+        save_json({**{"experiment": self.experiment_name}, **metrics}, combined_path)
+
+        logger.info(
+            "Done! F1-macro=%.4f  F1-micro=%.4f  Hamming=%.4f",
+            metrics["f1_macro"], metrics["f1_micro"], metrics["hamming_loss"],
+        )
+        return {"results": results, "metrics": metrics}
+
+    def _compute_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        from sklearn.metrics import f1_score, hamming_loss
+
+        y_true, y_pred = [], []
+        for rec in results:
+            y_true.append(_emotions_to_multihot(rec["true_labels"]))
+            y_pred.append(_emotions_to_multihot(rec["predicted_labels"]))
+
+        y_true_np = np.array(y_true)
+        y_pred_np = np.array(y_pred)
+
+        per_class = f1_score(y_true_np, y_pred_np, average=None, zero_division=0).tolist()
+        per_class_dict = {
+            name: round(float(f), 4) for name, f in zip(EMOTION_NAMES, per_class)
+        }
+
+        return {
+            "f1_macro": round(float(f1_score(y_true_np, y_pred_np, average="macro", zero_division=0)), 4),
+            "f1_micro": round(float(f1_score(y_true_np, y_pred_np, average="micro", zero_division=0)), 4),
+            "f1_weighted": round(float(f1_score(y_true_np, y_pred_np, average="weighted", zero_division=0)), 4),
+            "hamming_loss": round(float(hamming_loss(y_true_np, y_pred_np)), 4),
+            "n_samples": len(results),
+            "per_class_f1": per_class_dict,
+        }
+
+
+# ============================================================
 # CLI entry-point
 # ============================================================
 def run_inference(
@@ -317,17 +551,19 @@ def run_inference(
     """
     Public API for running inference from Python code.
 
-    Args:
-        config_path: Path to YAML config file
-        n_samples: Override n_samples from config (optional)
-
-    Returns:
-        Dict with 'results' and 'metrics'.
+    Dispatches to GeminiInferenceClient if config model.provider == "gemini",
+    otherwise uses HFInferenceClient (HuggingFace local models).
     """
     config = load_config(config_path)
     if n_samples is not None:
         config["inference"]["n_samples"] = n_samples
-    client = HFInferenceClient(config)
+
+    provider = config.get("model", {}).get("provider", "huggingface")
+    if provider == "gemini":
+        client: Any = GeminiInferenceClient(config)
+    else:
+        client = HFInferenceClient(config)
+
     return client.run()
 
 

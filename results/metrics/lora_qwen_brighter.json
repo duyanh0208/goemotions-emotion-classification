@@ -1,0 +1,20 @@
+{
+  "experiment": "lora_qwen_brighter",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "method": "LoRA fine-tune (multi-label classifier)",
+  "dataset": "brighter",
+  "n_test": 5528,
+  "epochs": 5,
+  "train_time_s": 874.3,
+  "f1_macro": 0.7522,
+  "f1_micro": 0.7785,
+  "f1_weighted": 0.7772,
+  "hamming_loss": 0.1326,
+  "per_class_f1": {
+    "anger": 0.6594,
+    "fear": 0.8349,
+    "joy": 0.7706,
+    "sadness": 0.7733,
+    "surprise": 0.7228
+  }
+}

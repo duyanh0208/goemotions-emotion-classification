@@ -9,20 +9,20 @@ experiment:
 
 model:
   provider: "gemini"
-  name: "gemini-2.0-flash"
-  temperature: 0.0        # Deterministic
+  name: "gemini-2.5-flash"    # Was gemini-2.0-flash → free-tier quota=0 (2026-06); 2.5-flash còn quota
+  temperature: 0.3            # Was 0.0 → caused neutral collapse (97.2% predict ["neutral"])
   max_output_tokens: 256
-  response_mime_type: "application/json"
+  response_mime_type: "application/json"  # Used by GeminiInferenceClient via response_schema
 
 inference:
-  n_samples: 2000         # Subset test (full = 5427)
+  n_samples: 5427         # Full test set (was 2000 subset) — for fair comparison vs BERT
   split: "test"
   seed: 42
   batch_size: 1           # Gemini không hỗ trợ batching
   retry_max_attempts: 3
   retry_delay_seconds: 5
-  rate_limit_rpm: 15      # Free tier limit
-  save_every_n: 50        # Checkpoint mỗi 50 calls (tránh mất progress)
+  rate_limit_rpm: 5       # Free tier gemini-2.5-flash = 5 RPM (+ daily cap ~250/day). Tăng nếu bật billing.
+  save_every_n: 50        # Checkpoint mỗi 50 calls
 
 prompt:
   type: "zero_shot"

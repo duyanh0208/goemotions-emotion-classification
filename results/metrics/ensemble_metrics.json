@@ -1,0 +1,117 @@
+{
+  "experiment": "ensemble_llm",
+  "description": "EXP-08 LLM ensemble (Llama+Qwen voting) on full 5427 test",
+  "best_strategy": "All4 majority (≥2)",
+  "best": {
+    "members": [
+      "llama_fewshot",
+      "qwen_fewshot",
+      "llama_zeroshot",
+      "qwen_zeroshot"
+    ],
+    "strategy": "majority",
+    "vote_threshold": 2,
+    "f1_macro": 0.2657,
+    "f1_micro": 0.2848,
+    "f1_weighted": 0.3339,
+    "hamming_loss": 0.0938,
+    "n_samples": 5427
+  },
+  "all_strategies": {
+    "Qwen FS (single)": {
+      "members": [
+        "qwen_fewshot"
+      ],
+      "strategy": "union",
+      "vote_threshold": 1,
+      "f1_macro": 0.2466,
+      "f1_micro": 0.29,
+      "f1_weighted": 0.2985,
+      "hamming_loss": 0.071,
+      "n_samples": 5427
+    },
+    "Llama FS (single)": {
+      "members": [
+        "llama_fewshot"
+      ],
+      "strategy": "union",
+      "vote_threshold": 1,
+      "f1_macro": 0.2382,
+      "f1_micro": 0.2432,
+      "f1_weighted": 0.302,
+      "hamming_loss": 0.1085,
+      "n_samples": 5427
+    },
+    "FS  union   (Llama∪Qwen)": {
+      "members": [
+        "llama_fewshot",
+        "qwen_fewshot"
+      ],
+      "strategy": "union",
+      "vote_threshold": 1,
+      "f1_macro": 0.2447,
+      "f1_micro": 0.256,
+      "f1_weighted": 0.3278,
+      "hamming_loss": 0.1273,
+      "n_samples": 5427
+    },
+    "FS  inter   (Llama∩Qwen)": {
+      "members": [
+        "llama_fewshot",
+        "qwen_fewshot"
+      ],
+      "strategy": "intersection",
+      "vote_threshold": 2,
+      "f1_macro": 0.2475,
+      "f1_micro": 0.3566,
+      "f1_weighted": 0.3423,
+      "hamming_loss": 0.0543,
+      "n_samples": 5427
+    },
+    "All4 union": {
+      "members": [
+        "llama_fewshot",
+        "qwen_fewshot",
+        "llama_zeroshot",
+        "qwen_zeroshot"
+      ],
+      "strategy": "union",
+      "vote_threshold": 1,
+      "f1_macro": 0.223,
+      "f1_micro": 0.2355,
+      "f1_weighted": 0.3258,
+      "hamming_loss": 0.1628,
+      "n_samples": 5427
+    },
+    "All4 majority (≥2)": {
+      "members": [
+        "llama_fewshot",
+        "qwen_fewshot",
+        "llama_zeroshot",
+        "qwen_zeroshot"
+      ],
+      "strategy": "majority",
+      "vote_threshold": 2,
+      "f1_macro": 0.2657,
+      "f1_micro": 0.2848,
+      "f1_weighted": 0.3339,
+      "hamming_loss": 0.0938,
+      "n_samples": 5427
+    },
+    "All4 majority (≥3)": {
+      "members": [
+        "llama_fewshot",
+        "qwen_fewshot",
+        "llama_zeroshot",
+        "qwen_zeroshot"
+      ],
+      "strategy": "majority",
+      "vote_threshold": 3,
+      "f1_macro": 0.2592,
+      "f1_micro": 0.3564,
+      "f1_weighted": 0.3492,
+      "hamming_loss": 0.0552,
+      "n_samples": 5427
+    }
+  }
+}

@@ -16,7 +16,7 @@ model:
   load_in_4bit: false       # Bật nếu VRAM < 8GB (cần bitsandbytes)
 
 inference:
-  n_samples: 2000           # Subset test (full = 5427)
+  n_samples: 5427           # Full test set (was 2000 subset) — for fair comparison vs BERT
   split: "test"
   seed: 42
   save_every_n: 50

@@ -158,18 +158,42 @@ python -m src.train --config configs/bert_base_debug.yaml --batch_size 4
 python -m src.train --config configs/bert_base.yaml
 ```
 
-→ Chạy ~1-1.5h trên RTX 2000 Ada.
+→ Mỗi encoder train ~37 phút trên RTX 2000 Ada 16GB.
 
 ### Trên máy GPU nhỏ (4GB)
 ```bash
 python -m src.train --config configs/bert_base.yaml --batch_size 8
 ```
 
-→ Chạy ~3-4h trên GTX 1650 Ti.
+→ Chậm hơn nhiều trên GTX 1650 Ti.
 
 ### Theo dõi real-time
 - Mở https://wandb.ai → project `goemotions-emotion-classification`
 - Xem loss curves, F1 metrics, GPU usage
+
+---
+
+## 8b. Chạy đầy đủ 9 thí nghiệm
+
+| # | Thí nghiệm | Lệnh |
+|---|-----------|------|
+| 01 | BERT-base fine-tune | `python -m src.train --config configs/bert_base.yaml` |
+| 02 | RoBERTa-base fine-tune | `python -m src.train --config configs/roberta_base.yaml` |
+| 03 | Llama-3B zero-shot | `python -m src.llm_inference --config configs/llama_zeroshot.yaml` |
+| 04 | Qwen-3B zero-shot | `python -m src.llm_inference --config configs/qwen_zeroshot.yaml` |
+| 05 | Llama-3B few-shot | `python -m src.llm_inference --config configs/llama_fewshot.yaml` |
+| 06 | Qwen-3B few-shot | `python -m src.llm_inference --config configs/qwen_fewshot.yaml` |
+| 07 | LLM ensemble | `python -m scripts.ensemble_llm` |
+| 08 | Cross-benchmark BRIGHTER | `python -m scripts.run_brighter --mode bert\|llm --model ...` |
+| 09 | LoRA fine-tune Qwen | `python -m scripts.lora_finetune --dataset goemotions\|brighter` |
+
+Phụ trợ:
+- Multi-seed (ổn định): `python scripts/run_multiseed.py`
+- Threshold tuning: `python scripts/tune_threshold.py`
+
+> **Lưu ý LoRA trên RTX Ada:** phải dùng **bf16** thay vì fp16 — fp16 gây lỗi gradient-unscale với GradScaler. Cần `peft 0.19.1`.
+
+Kết quả metrics ghi vào `results/metrics/*.json`; xem tổng hợp đầy đủ trong [EXPERIMENTS.md](EXPERIMENTS.md).
 
 ---
 

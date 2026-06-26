@@ -1,148 +1,47 @@
-# ============================================================
 # Python
-# ============================================================
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
+dist/
+build/
+.eggs/
 *.egg
-MANIFEST
 
-# ============================================================
-# Virtual Environments
-# ============================================================
-venv/
-env/
-ENV/
+# Environments
+.env
 .venv/
+venv/
+ENV/
 
-# ============================================================
-# IDE
-# ============================================================
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# ============================================================
 # Jupyter
-# ============================================================
 .ipynb_checkpoints/
-*/.ipynb_checkpoints/*
 
-# ============================================================
-# Data — KHÔNG commit dataset (quá lớn)
-# ============================================================
-data/raw/*
-data/processed/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-
-# BI&PA data directories
-bi_dashboard/data/raw/*
-bi_dashboard/data/processed/*
-bi_dashboard/data/powerbi_export/*
-!bi_dashboard/data/raw/.gitkeep
-!bi_dashboard/data/processed/.gitkeep
-!bi_dashboard/data/powerbi_export/.gitkeep
-# Power BI binary files
-bi_dashboard/powerbi/*.pbix
-*.csv
-*.parquet
-*.json.gz
-*.tsv
-# Trừ small lookup files
-!configs/*.yaml
-!docs/*.md
-
-# ============================================================
-# Models — KHÔNG commit model weights (quá lớn)
-# ============================================================
-results/models/*
-!results/models/.gitkeep
-*.pt
-*.pth
+# Model weights & large outputs (regeneratable)
+results/models/
+results/llm/
 *.bin
+*.pt
 *.safetensors
 
-# ============================================================
-# Logs & Outputs
-# ============================================================
-results/logs/*
-!results/logs/.gitkeep
-wandb/
-runs/
-*.log
-*.out
-
-# ============================================================
-# Cache
-# ============================================================
-.cache/
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
-.tox/
-
 # HuggingFace cache
-~/.cache/huggingface/
+.cache/
 
-# ============================================================
-# Secrets — TUYỆT ĐỐI KHÔNG COMMIT
-# ============================================================
-.env
-.env.local
-*.key
-*_secret*
-credentials.json
+# Wandb
+wandb/
 
-# ============================================================
 # OS
-# ============================================================
+.DS_Store
 Thumbs.db
 desktop.ini
 
-# ============================================================
-# Project-specific
-# ============================================================
-# Debug / smoke-test metric files
-results/metrics/*_debug.json
-results/metrics/*debug*.json
+# Docs — compiled/binary formats (không commit vào repo)
+*.docx
+*.pptx
+*.pdf
+*.html
 
-# Predictions & checkpoints (lớn, sinh lại được)
-results/predictions/*.npy
-!results/predictions/.gitkeep
-results/llm/*/predictions.json
-results/llm/*/checkpoint.json
-results/llm/*/checkpoint.tmp
+# Admin variants của docs
+*-ADMIN.md
 
-# Val/test logits (lớn)
-results/models/*/*.npy
-
-# Backup files
-*.bak
-*.old
-
-# Temporary files
-tmp/
-temp/
-# Backup files from Gemini v1 neutral-collapse run — not needed in repo
-results/llm/gemini_zeroshot/*_v1_neutral_collapse.json
+# Slides (generated files)
+docs/SLIDES.*

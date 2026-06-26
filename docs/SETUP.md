@@ -17,7 +17,7 @@ Hướng dẫn cài đặt từ A → Z. Theo thứ tự, đừng skip.
 ## 2. Clone Repo
 
 ```bash
-git clone https://github.com/<your-username>/goemotions-emotion-classification.git
+git clone https://github.com/duyanh0208/goemotions-emotion-classification.git
 cd goemotions-emotion-classification
 ```
 
@@ -206,6 +206,5 @@ set WANDB_API_KEY=abc123...
 
 Sau khi setup xong:
 1. Đọc [PROJECT_PLAN.md](PROJECT_PLAN.md) để hiểu roadmap
-2. Đọc [METHODOLOGY.md](METHODOLOGY.md) để hiểu chi tiết phương pháp
-3. Chạy experiments theo Week 1 trong PROJECT_PLAN
-4. Update [EXPERIMENTS.md](EXPERIMENTS.md) sau mỗi run
+2. Chạy experiments theo thứ tự EXP-01 → EXP-09 trong [EXPERIMENTS.md](EXPERIMENTS.md)
+3. Xem kết quả đầy đủ trong [EXPERIMENTS.md](EXPERIMENTS.md)

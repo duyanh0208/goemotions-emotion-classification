@@ -1,8 +1,8 @@
 # 📋 Project Plan — GoEmotions Emotion Classification
 
-> **Document version:** 1.0 (May 2026)
+> **Document version:** 2.0 (June 2026)
 > **Author:** Bùi Đào Duy Anh
-> **Status:** In Progress
+> **Status:** ✅ Hoàn tất — 9 thí nghiệm (EXP-01 → EXP-09), 2 dataset (GoEmotions + SemEval-2025 BRIGHTER)
 
 ---
 
@@ -40,10 +40,12 @@ Project này cung cấp empirical evidence cho các câu hỏi đó.
 
 | # | Câu hỏi | Cách trả lời |
 |---|---------|--------------|
-| RQ1 | Fine-tuned BERT có vượt LLM zero-shot? | So sánh F1-macro |
-| RQ2 | Few-shot có thu hẹp gap? | Compare zero-shot vs few-shot LLM |
+| RQ1 | Fine-tuned BERT có vượt LLM zero/few-shot? | So sánh F1-macro trên cùng test 5,427 |
+| RQ2 | BERT vs RoBERTa trong cùng điều kiện? | So sánh fine-tune đồng cấu hình |
 | RQ3 | LLM mạnh ở rare classes? | Per-class F1 analysis |
-| RQ4 | Trade-off accuracy vs cost? | Pareto analysis |
+| RQ4 | Trade-off accuracy vs cost? | Train-time / inference-time analysis |
+
+> **Mở rộng (theo góp ý GVHD):** đối chiếu với **SemEval-2025 Task 11** — chạy chính pipeline trên dữ liệu BRIGHTER (EXP-08) và LoRA fine-tune một LLM (EXP-09) để đóng vòng lập luận.
 
 ---
 
@@ -91,32 +93,25 @@ Input text
 - `pos_weight[c] = (N_negative_c) / (N_positive_c)`, clip ở [1, 50]
 - Rationale: Class hiếm → weight cao → model bị "phạt" nặng hơn khi miss
 
-### 3.3. Track B: LLM In-context Learning (Offline)
+### 3.3. Track B: LLM In-context Learning (mã nguồn mở, chạy local)
 
-**Models (chạy local, không cần API key):**
-- `meta-llama/Llama-3.2-3B-Instruct` — EXP-03 (zero-shot)
-- `Qwen/Qwen2.5-3B-Instruct` — EXP-04 (zero-shot, so sánh kiến trúc)
+**Models:** (chạy local, không cần API key — bảo đảm tái lập & công bằng điều kiện)
+- `meta-llama/Llama-3.2-3B-Instruct`
+- `Qwen/Qwen2.5-3B-Instruct`
 
-**Inference backend:** HuggingFace `transformers` pipeline, local GPU
-- Device: `auto` (CUDA nếu có, fallback CPU)
-- 4-bit quantization (`bitsandbytes`) cho máy có VRAM < 8 GB
-- Không có rate limit, không cần billing
+> LLM API thương mại (vd. Gemini) **ngoài phạm vi** so sánh vì khác bản chất (mô hình đóng, chi phí theo lượt gọi, không kiểm soát cấu hình).
 
-**Zero-shot prompt:**
-```
-You are an emotion classifier. Given a text, identify which of the
-following 28 emotions apply (multi-label):
-[list 28 emotions with brief descriptions]
+**Zero-shot prompt:** đóng vai chuyên gia cảm xúc, ràng buộc multi-label, chỉ dùng 28 nhãn, fallback `["neutral"]`, xuất CHỈ JSON `{"emotions":[...]}`. Giải mã greedy (`do_sample=False`).
 
-Text: "{input}"
-Output a JSON list of applicable emotion names.
-```
+**Few-shot prompt (k=5):** thêm 5 ví dụ từ training set (seed=42) trước câu cần phân loại.
 
-**Few-shot prompt (k=5):**
-- Cùng base prompt + 5 examples curated từ training set
-- Examples cover: positive multi-label, negative multi-label, neutral, rare class, mild surprise
+**Evaluation:** **full test 5,427 mẫu** — giống hệt Track A (so sánh công bằng tuyệt đối).
 
-**Evaluation:** Cùng test set như Track A (subset 2000 samples vì tốc độ inference local)
+### 3.3b. Track C: LLM Fine-tune & Ensemble
+
+- **EXP-07 Ensemble:** majority-vote 4 prediction-set Llama/Qwen (`scripts/ensemble_llm.py`).
+- **EXP-08 Cross-benchmark:** chạy pipeline trên BRIGHTER English (SemEval-2025 Task 11) — `scripts/run_brighter.py`.
+- **EXP-09 LoRA fine-tune:** LoRA fine-tune Qwen2.5-3B làm classifier (`scripts/lora_finetune.py`, peft r=16, bf16).
 
 ### 3.4. Metrics
 
@@ -153,13 +148,13 @@ Output a JSON list of applicable emotion names.
 ### Week 2 (27 May - 2 June): LLM Track + Analysis
 | Day | Task | Deliverable |
 |-----|------|-------------|
-| Mon | ✅ Migrate sang Llama offline, `llm_inference.py` + configs | Working LLM client (no API) |
-| Tue | ✅ Fix bugs (Unicode, CUDA/datasets fork), run smoke tests | Pipeline verified |
-| Wed | ✅ EXP-01 BERT-base full training (F1-macro=0.4159) | `results/metrics/bert_base_baseline.json` |
-| Thu | ✅ EXP-02 RoBERTa training (F1-macro=0.4111) | `results/metrics/roberta_base_baseline.json` |
-| Fri | EXP-03 Llama 3.2 3B zero-shot inference | `results/metrics/llama_zeroshot_metrics.json` |
-| Sat | EXP-04 Qwen2.5 3B zero-shot + Error analysis | `results/metrics/qwen_zeroshot_metrics.json` |
-| Sun | Disagreement analysis | Notebook + insights |
+| Mon | Setup Gemini API, `llm_inference.py` | Working LLM client |
+| Tue | Run zero-shot on 500 samples (smoke test) | Initial results |
+| Wed | Run zero-shot on 2000 test samples | Full zero-shot metrics |
+| Thu | Run few-shot on 2000 test samples | Few-shot metrics |
+| Fri | Error analysis notebook | 03_error_analysis.ipynb |
+| Sat | Disagreement analysis | Notebook + insights |
+| Sun | Buffer / start writeup | Report outline |
 
 ### Week 3 (3-9 June): Writeup
 | Day | Task | Deliverable |
@@ -183,8 +178,7 @@ Output a JSON list of applicable emotion names.
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
 | BERT OOM trên máy nhà (4GB) | High | Medium | Train trên máy trường (16GB) hoặc giảm batch size |
-| Llama inference chậm trên CPU | High | Medium | Dùng máy trường (GPU), bật 4-bit nếu VRAM thấp |
-| Llama output format không parse được | Medium | Low | `parse_response()` có fallback `["neutral"]` |
+| Gemini API rate limit | Medium | Low | Chia nhiều ngày, dùng subset |
 | F1-macro thấp hơn paper baseline | Low | High | Reproduce với hyperparameters đúng |
 | Domain knowledge thiếu | Medium | Medium | Đọc paper kỹ, hỏi cô Oanh |
 | Thời gian không đủ | Medium | High | Buffer 20%, ưu tiên Track A trước |
@@ -207,16 +201,13 @@ Output a JSON list of applicable emotion names.
 - [ ] REPORT.md (final report)
 
 ### Results
-- [ ] Model checkpoints (BERT, RoBERTa)
-- [ ] Metrics JSON cho mọi experiments
-- [ ] Plots (loss curves, confusion matrix, per-class F1)
-- [ ] W&B dashboard public link
+- [x] Model checkpoints (BERT, RoBERTa, LoRA-Qwen) — *local, không commit (quá lớn)*
+- [x] Metrics JSON cho mọi experiments (`results/metrics/`)
+- [x] Plots (per-class F1, model comparison)
 
 ### Final Submission
-- [ ] Báo cáo 8-10 trang tiếng Việt
-- [ ] Slides 15 phút
-- [ ] Demo notebook
-- [ ] Public GitHub repo link
+- [x] Báo cáo kết quả đầy đủ ([REPORT.md](REPORT.md)) + log thí nghiệm ([EXPERIMENTS.md](EXPERIMENTS.md))
+- [x] Public GitHub repo link
 
 ---
 
@@ -241,14 +232,13 @@ Output a JSON list of applicable emotion names.
 
 ### Software
 - Python 3.10, PyTorch 2.x
-- HuggingFace Transformers, Datasets
-- Weights & Biases (tracking)
-- `bitsandbytes` (4-bit quantization cho LLM trên GPU nhỏ)
+- HuggingFace Transformers, Datasets, PEFT (LoRA)
+- scikit-learn (metrics)
 - Jupyter, VS Code, Git
 
 ### Datasets
-- GoEmotions (primary)
-- (Future) SemEval ABSA — nếu mở rộng sang aspect-based
+- GoEmotions (primary, 28 lớp)
+- SemEval-2025 Task 11 — BRIGHTER English (kiểm chứng chéo, 5 lớp)
 
 ---
 
@@ -264,4 +254,4 @@ Xem mục References trong [README.md](../README.md).
 |------|--------|--------|
 | 2026-05-20 | Initial draft | DA |
 | 2026-05-21 | Confirm scope: NLP only, BERT vs LLM | DA |
-| 2026-06-03 | Chuyển Track B từ Gemini API sang Llama/Qwen offline; cập nhật timeline, risks, tools | DA |
+| 2026-06-26 | v2.0 — chốt 9 thí nghiệm, LLM local (Llama/Qwen) thay Gemini, full 5,427; thêm SemEval-2025 cross-benchmark (EXP-08) + LoRA (EXP-09) | DA |
